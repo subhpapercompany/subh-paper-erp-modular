@@ -1553,15 +1553,9 @@ def render():
                     _pcol, _lcol = st.columns([2.0, 1.4], vertical_alignment="top")
                     with _pcol:
                         st.markdown("<div class='fe-sale-plabel'>Party A/c Name :</div>", unsafe_allow_html=True)
-                        st.text_input(
-                            "Party A/c Name :",
-                            key="fe_sale_party",
-                            label_visibility="collapsed",
-                            placeholder="Party ledger dhundein...",
-                        )
                         if _sel_party:
                             st.markdown(
-                                f"<div class='fe-sale-party-sel'>✔ {_sel_party}</div>",
+                                f"<div class='fe-sale-box-display'>{_sel_party}</div>",
                                 unsafe_allow_html=True,
                             )
                             _bal_open = conn.execute(
@@ -1588,19 +1582,20 @@ def render():
                             if st.button("Change Party", key="fe_sale_party_change"):
                                 st.session_state.pop("fe_sale_selected_party", None)
                                 st.rerun()
+                        else:
+                            st.text_input(
+                                "Party A/c Name :",
+                                key="fe_sale_party",
+                                label_visibility="collapsed",
+                                placeholder="Party ledger dhundein...",
+                            )
                         st.markdown(
                             "<div class='fe-sale-plabel' style='margin-top:18px;'>Sales Ledger :</div>",
                             unsafe_allow_html=True,
                         )
-                        st.text_input(
-                            "Sales Ledger :",
-                            key="fe_sale_salesledger",
-                            label_visibility="collapsed",
-                            placeholder="Sales ledger dhundein...",
-                        )
                         if _sel_sales:
                             st.markdown(
-                                f"<div class='fe-sale-party-sel'>✔ {_sel_sales}</div>",
+                                f"<div class='fe-sale-box-display-sl'>{_sel_sales}</div>",
                                 unsafe_allow_html=True,
                             )
                             _sb_open = conn.execute(
@@ -1627,6 +1622,13 @@ def render():
                             if st.button("Change Sales Ledger", key="fe_sale_sales_change"):
                                 st.session_state.pop("fe_sale_selected_salesledger", None)
                                 st.rerun()
+                        else:
+                            st.text_input(
+                                "Sales Ledger :",
+                                key="fe_sale_salesledger",
+                                label_visibility="collapsed",
+                                placeholder="Sales ledger dhundein...",
+                            )
                     with _lcol:
                         _cre_show = st.session_state.get("fe_sale_show_create", False)
                         if not _cre_show:
@@ -1677,7 +1679,10 @@ def render():
                                     "<div class='fe-sale-plabel fe-lglabel'>Selected Sales Ledger</div>",
                                     unsafe_allow_html=True,
                                 )
-                                st.markdown(f"<div class='fe-sale-party-sel'>✔ {_sel_sales}</div>", unsafe_allow_html=True)
+                                st.markdown(
+                                    f"<div class='fe-sale-box-display-sl'>{_sel_sales}</div>",
+                                    unsafe_allow_html=True,
+                                )
                         if st.button("Create Ledger", key="fe_sale_lg_create_toggle", use_container_width=True):
                             st.session_state["fe_sale_show_create"] = not _cre_show
                             st.rerun()
