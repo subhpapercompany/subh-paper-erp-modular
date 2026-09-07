@@ -1580,10 +1580,9 @@ def render():
                                 (_sel_party,),
                             ).fetchone()[0]
                             _bal_cur = float(_bal_open or 0) + float(_bal_dr or 0) - float(_bal_cr or 0)
-                            _bal_side = "Dr" if _bal_cur >= 0 else "Cr"
                             st.markdown(
                                 f"<div class='fe-sale-plabel' style='margin-top:14px;'>Current Balance :</div>"
-                                f"<div class='fe-sale-cbalance'>{abs(_bal_cur):,.2f} {_bal_side}</div>",
+                                f"<div class='fe-sale-cbalance'>{abs(_bal_cur):,.2f} Dr</div>",
                                 unsafe_allow_html=True,
                             )
                             if st.button("Change Party", key="fe_sale_party_change"):
@@ -1602,6 +1601,27 @@ def render():
                         if _sel_sales:
                             st.markdown(
                                 f"<div class='fe-sale-party-sel'>✔ {_sel_sales}</div>",
+                                unsafe_allow_html=True,
+                            )
+                            _sb_open = conn.execute(
+                                "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
+                                "WHERE LOWER(TRIM(ledger_name)) = LOWER(?)",
+                                (_sel_sales,),
+                            ).fetchone()[0]
+                            _sb_dr = conn.execute(
+                                "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
+                                (_sel_sales,),
+                            ).fetchone()[0]
+                            _sb_cr = conn.execute(
+                                "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
+                                (_sel_sales,),
+                            ).fetchone()[0]
+                            _sb_cur = float(_sb_open or 0) + float(_sb_dr or 0) - float(_sb_cr or 0)
+                            st.markdown(
+                                f"<div class='fe-sale-plabel' style='margin-top:14px;'>Current Balance :</div>"
+                                f"<div class='fe-sale-cbalance' style='color:#15803d;'>{abs(_sb_cur):,.2f} Cr</div>",
                                 unsafe_allow_html=True,
                             )
                             if st.button("Change Sales Ledger", key="fe_sale_sales_change"):
