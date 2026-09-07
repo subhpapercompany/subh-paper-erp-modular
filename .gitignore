@@ -1,0 +1,16 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Database files (live business data - never commit)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Streamlit
+.streamlit/
+
+# OS
+Thumbs.db
+.DS_Store
