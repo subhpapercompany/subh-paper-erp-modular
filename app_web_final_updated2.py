@@ -99,11 +99,11 @@ st.markdown("""
     }
     .tally-avc-type-sm {
         display:inline-block; vertical-align:middle; background:#15803d; color:#fff;
-        padding:2px 8px 3px; font-size:13px; font-weight:700; min-width:62px;
+        padding:2px 8px 3px; font-size:15px; font-weight:700; min-width:62px;
         text-align:center; line-height:1.2; border-radius:3px;
     }
     .tally-avc-no { font-size:15px; font-weight:700; padding-top:6px; }
-    .fe-sale-auto-no { font-size:14px; font-weight:800; color:#134e4a; vertical-align:middle; padding-left:8px; display:inline-block; min-width:36px; }
+    .fe-sale-auto-no { font-size:16px; font-weight:800; color:#134e4a; vertical-align:middle; padding-left:8px; display:inline-block; min-width:36px; }
     .fe-sale-datebox { text-align:right; font-size:15px; font-weight:800; color:#134e4a; letter-spacing:.4px; }
     .fe-sale-day { text-align:right; font-size:12px; font-weight:600; color:#0f766e; margin-top:2px; }
     .tally-avc-datebox { text-align:right; font-size:15px; font-weight:700; line-height:1.25; }
