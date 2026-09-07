@@ -110,10 +110,11 @@ st.markdown("""
     .fe-lglabel { color:#1B4F91; }
     .fe-sale-party-sel { background:#f0fdf4; border:1px solid #86efac; border-radius:4px; padding:5px 9px; font-weight:700; color:#166534; margin-top:6px; }
     .fe-sale-cbalance { font-size:15px; font-weight:800; color:#1B4F91; margin-top:2px; }
-    .fe-sale-box-display { width:4in; max-width:100%; background:#eef4ff; border:1.5px solid #1B4F91; border-radius:4px; padding:8px 12px; font-size:15px; font-weight:600; color:#0f172a; }
-    .fe-sale-box-display-sl { width:4in; max-width:100%; background:#f0fdf4; border:1.5px solid #15803d; border-radius:4px; padding:8px 12px; font-size:15px; font-weight:600; color:#0f172a; }
-    input[placeholder="Party ledger dhundein..."] { width:4in; max-width:100%; border:1.5px solid #1B4F91 !important; background:#eef4ff !important; font-size:15px; font-weight:600; color:#0f172a !important; }
-    input[placeholder="Sales ledger dhundein..."] { width:4in; max-width:100%; border:1.5px solid #15803d !important; background:#f0fdf4 !important; font-size:15px; font-weight:600; color:#0f172a !important; }
+    .fe-sale-inline-label { font-size:15px; font-weight:700; color:#111; white-space:nowrap; }
+    .fe-sale-inline-val { font-size:15px; font-weight:600; color:#0f172a; border-bottom:1.5px solid #94a3b8; padding:1px 2px; min-width:200px; }
+    .fe-sale-inline-val-sl { font-size:15px; font-weight:600; color:#0f172a; border-bottom:1.5px solid #94a3b8; padding:1px 2px; min-width:200px; }
+    input[placeholder="Party dhundein..."] { border:none !important; background:transparent !important; box-shadow:none !important; border-bottom:1.5px solid #94a3b8 !important; border-radius:0 !important; padding:1px 2px !important; font-size:15px !important; font-weight:600 !important; color:#0f172a !important; }
+    input[placeholder="Sales dhundein..."] { border:none !important; background:transparent !important; box-shadow:none !important; border-bottom:1.5px solid #94a3b8 !important; border-radius:0 !important; padding:1px 2px !important; font-size:15px !important; font-weight:600 !important; color:#0f172a !important; }
     .fe-sale-box4 { width:4in; max-width:100%; background:#eef4ff; border:1.5px solid #1B4F91; border-radius:4px; font-size:15px; font-weight:600; color:#0f172a; }
     .tally-avc-datebox { text-align:right; font-size:15px; font-weight:700; line-height:1.25; }
     .tally-avc-datebox .dow { font-size:13px; font-weight:600; }
