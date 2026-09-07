@@ -106,6 +106,10 @@ st.markdown("""
     .fe-sale-auto-no { font-size:16px; font-weight:800; color:#134e4a; vertical-align:middle; padding-left:8px; display:inline-block; min-width:36px; }
     .fe-sale-datebox { text-align:right; font-size:15px; font-weight:800; color:#134e4a; letter-spacing:.4px; }
     .fe-sale-day { text-align:right; font-size:12px; font-weight:600; color:#0f766e; margin-top:2px; }
+    .fe-sale-plabel { font-size:14px; font-weight:700; color:#134e4a; margin:4px 0 2px; }
+    .fe-lglabel { color:#1B4F91; }
+    .fe-sale-party-sel { background:#f0fdf4; border:1px solid #86efac; border-radius:4px; padding:5px 9px; font-weight:700; color:#166534; margin-top:6px; }
+    .fe-sale-cbalance { font-size:15px; font-weight:800; color:#1B4F91; margin-top:2px; }
     .tally-avc-datebox { text-align:right; font-size:15px; font-weight:700; line-height:1.25; }
     .tally-avc-datebox .dow { font-size:13px; font-weight:600; }
     .tally-avc-label {

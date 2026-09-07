@@ -1543,9 +1543,104 @@ def render():
                     </script>
                     """, height=0, width=0)
                     st.markdown("---")
-                    st.info("📭 **Sale Entry — Fresh Blank Page.**\n\n"
-                            "Is page ko apne hisaab se configure karein — Tally ke Inventory Mode ke anusar.\n\n"
-                            "Abhi koi field nahi hai. Jab Ready ho, yahan apna Sale Entry setup lagayein.")
+                    # ---- PARTY A/c NAME + LEDGER LIST (TALLY STYLE) ----
+                    _sel_party = st.session_state.get("fe_sale_selected_party")
+                    _party_input = st.session_state.get("fe_sale_party")
+                    _displ_val = _sel_party if _sel_party else (_party_input or "")
+                    _pcol, _lcol = st.columns([2.0, 1.4], vertical_alignment="top")
+                    with _pcol:
+                        st.markdown("<div class='fe-sale-plabel'>Party A/c Name :</div>", unsafe_allow_html=True)
+                        st.text_input(
+                            "Party A/c Name :",
+                            key="fe_sale_party",
+                            label_visibility="collapsed",
+                            placeholder="Ledger search karein...",
+                        )
+                        if _sel_party:
+                            st.markdown(
+                                f"<div class='fe-sale-party-sel'>✔ {_sel_party}</div>",
+                                unsafe_allow_html=True,
+                            )
+                            _bal_open = conn.execute(
+                                "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
+                                "WHERE LOWER(TRIM(ledger_name)) = LOWER(?)",
+                                (_sel_party,),
+                            ).fetchone()[0]
+                            _bal_dr = conn.execute(
+                                "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
+                                (_sel_party,),
+                            ).fetchone()[0]
+                            _bal_cr = conn.execute(
+                                "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
+                                (_sel_party,),
+                            ).fetchone()[0]
+                            _bal_cur = float(_bal_open or 0) + float(_bal_dr or 0) - float(_bal_cr or 0)
+                            _bal_side = "Dr" if _bal_cur >= 0 else "Cr"
+                            st.markdown(
+                                f"<div class='fe-sale-plabel' style='margin-top:14px;'>Current Balance :</div>"
+                                f"<div class='fe-sale-cbalance'>{abs(_bal_cur):,.2f} {_bal_side}</div>",
+                                unsafe_allow_html=True,
+                            )
+                            if st.button("Change Party", key="fe_sale_party_change"):
+                                st.session_state.pop("fe_sale_selected_party", None)
+                                st.rerun()
+                    with _lcol:
+                        _cre_show = st.session_state.get("fe_sale_show_create", False)
+                        if not _cre_show and not _sel_party:
+                            st.markdown(
+                                "<div class='fe-sale-plabel fe-lglabel'>List of Ledger Account</div>",
+                                unsafe_allow_html=True,
+                            )
+                            _q = (_displ_val or "").lower()
+                            _all_ledgers = [r[0] for r in conn.execute(
+                                "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
+                            ).fetchall()]
+                            _shown = [n for n in _all_ledgers if _q in n.lower()]
+                            with st.container(height=200, border=True):
+                                for _nm in _shown[:200]:
+                                    if st.button(_nm, key=f"fe_sale_lg_{_nm}_b", use_container_width=True):
+                                        st.session_state["fe_sale_selected_party"] = _nm
+                                        st.rerun()
+                        if _sel_party and not _cre_show:
+                            st.markdown(
+                                f"<div class='fe-sale-plabel fe-lglabel'>Selected Ledger</div>",
+                                unsafe_allow_html=True,
+                            )
+                            st.markdown(f"<div class='fe-sale-party-sel'>✔ {_sel_party}</div>", unsafe_allow_html=True)
+                        if st.button("Create Ledger", key="fe_sale_lg_create_toggle", use_container_width=True):
+                            st.session_state["fe_sale_show_create"] = not _cre_show
+                            st.rerun()
+                    if st.session_state.get("fe_sale_show_create"):
+                        with st.form("fe_sale_create_ledger"):
+                            st.markdown("**➕ Create New Ledger**")
+                            _cn = st.text_input("Ledger Name")
+                            _grps = [r[0] for r in conn.execute(
+                                "SELECT group_name FROM account_group_master ORDER BY group_name"
+                            ).fetchall()] or ["Default"]
+                            _cg = st.selectbox(
+                                "Group",
+                                _grps,
+                                index=_grps.index("Current Assets") if "Current Assets" in _grps else 0,
+                            )
+                            _sub = st.form_submit_button("💾 Save Ledger")
+                            if _sub:
+                                _clean = (_cn or "").strip()
+                                if not _clean:
+                                    st.error("Ledger name required.")
+                                elif conn.execute("SELECT 1 FROM ledger_master WHERE LOWER(ledger_name) = LOWER(?)", (_clean,)).fetchone():
+                                    st.error(f"Ledger '{_clean}' already exists.")
+                                else:
+                                    conn.execute(
+                                        "INSERT INTO ledger_master (ledger_name, group_name, opening_balance) VALUES (?,?,0)",
+                                        (_clean, _cg),
+                                    )
+                                    conn.commit()
+                                    st.session_state["fe_sale_selected_party"] = _clean
+                                    st.session_state["fe_sale_show_create"] = False
+                                    st.rerun()
+                    st.markdown("---")
                     st.stop()
                 pending_cells = st.session_state.get("fe_pending_cells")
                 if pending_cells:
