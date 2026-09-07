@@ -110,6 +110,9 @@ st.markdown("""
     .fe-lglabel { color:#1B4F91; }
     .fe-sale-party-sel { background:#f0fdf4; border:1px solid #86efac; border-radius:4px; padding:5px 9px; font-weight:700; color:#166534; margin-top:6px; }
     .fe-sale-cbalance { font-size:15px; font-weight:800; color:#1B4F91; margin-top:2px; }
+    input[placeholder="Party ledger dhundein..."] { width:4in; max-width:100%; border:1.5px solid #1B4F91 !important; background:#eef4ff !important; font-size:15px; font-weight:600; color:#0f172a !important; }
+    input[placeholder="Sales ledger dhundein..."] { width:4in; max-width:100%; border:1.5px solid #15803d !important; background:#f0fdf4 !important; font-size:15px; font-weight:600; color:#0f172a !important; }
+    .fe-sale-box4 { width:4in; max-width:100%; background:#eef4ff; border:1.5px solid #1B4F91; border-radius:4px; font-size:15px; font-weight:600; color:#0f172a; }
     .tally-avc-datebox { text-align:right; font-size:15px; font-weight:700; line-height:1.25; }
     .tally-avc-datebox .dow { font-size:13px; font-weight:600; }
     .tally-avc-label {

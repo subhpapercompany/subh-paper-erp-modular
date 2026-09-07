@@ -1542,7 +1542,7 @@ def render():
                     })();
                     </script>
                     """, height=0, width=0)
-                    st.markdown("---")
+                    st.markdown("<div style='border-top:1px solid #d1d5db; margin:6px 0 6px 0;'></div>", unsafe_allow_html=True)
                     # ---- PARTY A/c NAME + SALES LEDGER (TALLY STYLE) ----
                     _sel_party = st.session_state.get("fe_sale_selected_party")
                     _party_input = st.session_state.get("fe_sale_party")
@@ -1557,7 +1557,7 @@ def render():
                             "Party A/c Name :",
                             key="fe_sale_party",
                             label_visibility="collapsed",
-                            placeholder="Ledger search karein...",
+                            placeholder="Party ledger dhundein...",
                         )
                         if _sel_party:
                             st.markdown(
@@ -1596,7 +1596,7 @@ def render():
                             "Sales Ledger :",
                             key="fe_sale_salesledger",
                             label_visibility="collapsed",
-                            placeholder="Ledger search karein...",
+                            placeholder="Sales ledger dhundein...",
                         )
                         if _sel_sales:
                             st.markdown(
@@ -1632,7 +1632,7 @@ def render():
                         if not _cre_show:
                             if not _sel_party:
                                 st.markdown(
-                                    "<div class='fe-sale-plabel fe-lglabel'>List of Ledger Account</div>",
+                                    "<div class='fe-sale-plabel fe-lglabel'>⬇ Dropdown List — Party Ledger</div>",
                                     unsafe_allow_html=True,
                                 )
                                 _q = (_displ_val or "").lower()
@@ -1640,14 +1640,20 @@ def render():
                                     "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
                                 ).fetchall()]
                                 _shown = [n for n in _all_ledgers if _q in n.lower()]
-                                with st.container(height=200, border=True):
-                                    for _nm in _shown[:200]:
-                                        if st.button(_nm, key=f"fe_sale_lg_{_nm}_b", use_container_width=True):
-                                            st.session_state["fe_sale_selected_party"] = _nm
-                                            st.rerun()
+                                _chose = st.selectbox(
+                                    "Party Ledger chunein:",
+                                    _shown,
+                                    index=None,
+                                    key="fe_sale_party_pick",
+                                    placeholder="🔍 Ledger select karein...",
+                                )
+                                if _chose:
+                                    st.session_state["fe_sale_selected_party"] = _chose
+                                    st.session_state.pop("fe_sale_party_pick", None)
+                                    st.rerun()
                             elif not _sel_sales:
                                 st.markdown(
-                                    "<div class='fe-sale-plabel fe-lglabel'>List of Ledger Account</div>",
+                                    "<div class='fe-sale-plabel fe-lglabel'>⬇ Dropdown List — Sales Ledger</div>",
                                     unsafe_allow_html=True,
                                 )
                                 _qs = (_displ_sales or "").lower()
@@ -1655,11 +1661,17 @@ def render():
                                     "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
                                 ).fetchall()]
                                 _shown_sl = [n for n in _all_sl if _qs in n.lower()]
-                                with st.container(height=200, border=True):
-                                    for _nm in _shown_sl[:200]:
-                                        if st.button(_nm, key=f"fe_sale_sl_{_nm}_b", use_container_width=True):
-                                            st.session_state["fe_sale_selected_salesledger"] = _nm
-                                            st.rerun()
+                                _chose_sl = st.selectbox(
+                                    "Sales Ledger chunein:",
+                                    _shown_sl,
+                                    index=None,
+                                    key="fe_sale_sales_pick",
+                                    placeholder="🔍 Ledger select karein...",
+                                )
+                                if _chose_sl:
+                                    st.session_state["fe_sale_selected_salesledger"] = _chose_sl
+                                    st.session_state.pop("fe_sale_sales_pick", None)
+                                    st.rerun()
                             else:
                                 st.markdown(
                                     "<div class='fe-sale-plabel fe-lglabel'>Selected Sales Ledger</div>",
