@@ -1552,26 +1552,19 @@ def render():
                         with _pl_l:
                             st.markdown("<div class='fe-sale-inline-label'>Party A/c Name :</div>", unsafe_allow_html=True)
                         with _pl_f:
-                            if _sel_party:
-                                st.markdown(
-                                    f"<div class='fe-sale-inline-val'>{_sel_party}</div>",
-                                    unsafe_allow_html=True,
-                                )
-                            else:
-                                _all_ledgers = [r[0] for r in conn.execute(
-                                    "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
-                                ).fetchall()]
-                                _chose = st.selectbox(
-                                    "Party Ledger chunein:",
-                                    _all_ledgers,
-                                    index=None,
-                                    key="fe_sale_party_pick",
-                                    placeholder="Type karke ledger chunein...",
-                                )
-                                if _chose:
-                                    st.session_state["fe_sale_selected_party"] = _chose
-                                    st.session_state.pop("fe_sale_party_pick", None)
-                                    st.rerun()
+                            _all_ledgers = [r[0] for r in conn.execute(
+                                "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
+                            ).fetchall()]
+                            _chose = st.selectbox(
+                                "Party Ledger chunein:",
+                                _all_ledgers,
+                                index=None,
+                                key="fe_sale_party_pick",
+                                placeholder="Type karke ledger chunein...",
+                            )
+                            if _chose:
+                                st.session_state["fe_sale_selected_party"] = _chose
+                                _sel_party = _chose
                         if _sel_party:
                             _bal_open = conn.execute(
                                 "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
@@ -1594,33 +1587,23 @@ def render():
                                 f"<span class='fe-sale-cbalance'> {abs(_bal_cur):,.2f} Dr</span></div>",
                                 unsafe_allow_html=True,
                             )
-                            if st.button("Change Party", key="fe_sale_party_change"):
-                                st.session_state.pop("fe_sale_selected_party", None)
-                                st.rerun()
                         _sl_l, _sl_f = st.columns([1.5, 2.6], vertical_alignment="center")
                         with _sl_l:
                             st.markdown("<div class='fe-sale-inline-label' style='margin-top:12px;'>Sales Ledger :</div>", unsafe_allow_html=True)
                         with _sl_f:
-                            if _sel_sales:
-                                st.markdown(
-                                    f"<div class='fe-sale-inline-val-sl' style='margin-top:12px;'>{_sel_sales}</div>",
-                                    unsafe_allow_html=True,
-                                )
-                            else:
-                                _all_sl = [r[0] for r in conn.execute(
-                                    "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
-                                ).fetchall()]
-                                _chose_sl = st.selectbox(
-                                    "Sales Ledger chunein:",
-                                    _all_sl,
-                                    index=None,
-                                    key="fe_sale_sales_pick",
-                                    placeholder="Type karke ledger chunein...",
-                                )
-                                if _chose_sl:
-                                    st.session_state["fe_sale_selected_salesledger"] = _chose_sl
-                                    st.session_state.pop("fe_sale_sales_pick", None)
-                                    st.rerun()
+                            _all_sl = [r[0] for r in conn.execute(
+                                "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
+                            ).fetchall()]
+                            _chose_sl = st.selectbox(
+                                "Sales Ledger chunein:",
+                                _all_sl,
+                                index=None,
+                                key="fe_sale_sales_pick",
+                                placeholder="Type karke ledger chunein...",
+                            )
+                            if _chose_sl:
+                                st.session_state["fe_sale_selected_salesledger"] = _chose_sl
+                                _sel_sales = _chose_sl
                         if _sel_sales:
                             _sb_open = conn.execute(
                                 "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
@@ -1643,20 +1626,8 @@ def render():
                                 f"<span class='fe-sale-cbalance' style='color:#15803d;'> {abs(_sb_cur):,.2f} Cr</span></div>",
                                 unsafe_allow_html=True,
                             )
-                            if st.button("Change Sales Ledger", key="fe_sale_sales_change"):
-                                st.session_state.pop("fe_sale_selected_salesledger", None)
-                                st.rerun()
                     with _lcol:
                         _cre_show = st.session_state.get("fe_sale_show_create", False)
-                        if not _cre_show and _sel_party and _sel_sales:
-                            st.markdown(
-                                "<div class='fe-sale-plabel fe-lglabel'>Selected Sales Ledger</div>",
-                                unsafe_allow_html=True,
-                            )
-                            st.markdown(
-                                f"<div class='fe-sale-inline-val-sl'>{_sel_sales}</div>",
-                                unsafe_allow_html=True,
-                            )
                         if st.button("Create Ledger", key="fe_sale_lg_create_toggle", use_container_width=True):
                             st.session_state["fe_sale_show_create"] = not _cre_show
                             st.rerun()
