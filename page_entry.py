@@ -56,6 +56,18 @@ def render():
         max-width: none !important;
         width: 100% !important;
     }
+    div[data-testid="stColumn"] div[data-testid="stSelectbox"] {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    div[data-testid="stColumn"] div[data-testid="stMarkdown"] .fe-sale-bal-row {
+        margin-top: 3px !important;
+        line-height: 1.15;
+    }
+    div[data-testid="stColumn"] [data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .fe-sale-bal-row) {
+        margin-top: -15px !important;
+        margin-bottom: 0 !important;
+    }
     div[data-testid="stColumn"] [data-testid="stInput"] input,
     div[data-testid="stColumn"] input[type="text"],
     div[data-testid="stColumn"] input[type="number"] {
@@ -1589,7 +1601,7 @@ def render():
                                 ).fetchone()[0]
                                 _bal_cur = float(_bal_open or 0) + float(_bal_dr or 0) - float(_bal_cr or 0)
                                 st.markdown(
-                                    f"<div class='fe-sale-plabel' style='margin-top:5px;font-size:12px;font-weight:400;'>Current Balance :"
+                                    f"<div class='fe-sale-bal-row fe-sale-plabel' style='font-size:12px;font-weight:400;'>Current Balance :"
                                     f"<span class='fe-sale-cbalance' style='font-size:12px;font-weight:400;'> {abs(_bal_cur):,.2f} Dr</span></div>",
                                     unsafe_allow_html=True,
                                 )
@@ -1629,7 +1641,7 @@ def render():
                                 ).fetchone()[0]
                                 _sb_cur = float(_sb_open or 0) + float(_sb_dr or 0) - float(_sb_cr or 0)
                                 st.markdown(
-                                    f"<div class='fe-sale-plabel' style='margin-top:5px;font-size:12px;font-weight:400;'>Current Balance :"
+                                    f"<div class='fe-sale-bal-row fe-sale-plabel' style='font-size:12px;font-weight:400;'>Current Balance :"
                                     f"<span class='fe-sale-cbalance' style='color:#15803d;font-size:12px;font-weight:400;'> {abs(_sb_cur):,.2f} Cr</span></div>",
                                     unsafe_allow_html=True,
                                 )
