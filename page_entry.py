@@ -1571,28 +1571,28 @@ def render():
                             if _chose:
                                 st.session_state["fe_sale_selected_party"] = _chose
                                 _sel_party = _chose
-                        if _sel_party:
-                            _bal_open = conn.execute(
-                                "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
-                                "WHERE LOWER(TRIM(ledger_name)) = LOWER(?)",
-                                (_sel_party,),
-                            ).fetchone()[0]
-                            _bal_dr = conn.execute(
-                                "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
-                                "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
-                                (_sel_party,),
-                            ).fetchone()[0]
-                            _bal_cr = conn.execute(
-                                "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
-                                "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
-                                (_sel_party,),
-                            ).fetchone()[0]
-                            _bal_cur = float(_bal_open or 0) + float(_bal_dr or 0) - float(_bal_cr or 0)
-                            st.markdown(
-                                f"<div class='fe-sale-plabel' style='margin-top:5px;font-size:12px;font-weight:400;'>Current Balance :"
-                                f"<span class='fe-sale-cbalance' style='font-size:12px;font-weight:400;'> {abs(_bal_cur):,.2f} Dr</span></div>",
-                                unsafe_allow_html=True,
-                            )
+                            if _sel_party:
+                                _bal_open = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
+                                    "WHERE LOWER(TRIM(ledger_name)) = LOWER(?)",
+                                    (_sel_party,),
+                                ).fetchone()[0]
+                                _bal_dr = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
+                                    (_sel_party,),
+                                ).fetchone()[0]
+                                _bal_cr = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
+                                    (_sel_party,),
+                                ).fetchone()[0]
+                                _bal_cur = float(_bal_open or 0) + float(_bal_dr or 0) - float(_bal_cr or 0)
+                                st.markdown(
+                                    f"<div class='fe-sale-plabel' style='margin-top:5px;font-size:12px;font-weight:400;'>Current Balance :"
+                                    f"<span class='fe-sale-cbalance' style='font-size:12px;font-weight:400;'> {abs(_bal_cur):,.2f} Dr</span></div>",
+                                    unsafe_allow_html=True,
+                                )
                         _sl_l, _sl_f = st.columns([0.9, 5.0], vertical_alignment="center")
                         with _sl_l:
                             st.markdown("<div class='fe-sale-inline-label' style='margin-top:12px;'>Sales Ledger :</div>", unsafe_allow_html=True)
@@ -1611,28 +1611,28 @@ def render():
                             if _chose_sl:
                                 st.session_state["fe_sale_selected_salesledger"] = _chose_sl
                                 _sel_sales = _chose_sl
-                        if _sel_sales:
-                            _sb_open = conn.execute(
-                                "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
-                                "WHERE LOWER(TRIM(ledger_name)) = LOWER(?)",
-                                (_sel_sales,),
-                            ).fetchone()[0]
-                            _sb_dr = conn.execute(
-                                "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
-                                "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
-                                (_sel_sales,),
-                            ).fetchone()[0]
-                            _sb_cr = conn.execute(
-                                "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
-                                "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
-                                (_sel_sales,),
-                            ).fetchone()[0]
-                            _sb_cur = float(_sb_open or 0) + float(_sb_dr or 0) - float(_sb_cr or 0)
-                            st.markdown(
-                                f"<div class='fe-sale-plabel' style='margin-top:5px;font-size:12px;font-weight:400;'>Current Balance :"
-                                f"<span class='fe-sale-cbalance' style='color:#15803d;font-size:12px;font-weight:400;'> {abs(_sb_cur):,.2f} Cr</span></div>",
-                                unsafe_allow_html=True,
-                            )
+                            if _sel_sales:
+                                _sb_open = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
+                                    "WHERE LOWER(TRIM(ledger_name)) = LOWER(?)",
+                                    (_sel_sales,),
+                                ).fetchone()[0]
+                                _sb_dr = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
+                                    (_sel_sales,),
+                                ).fetchone()[0]
+                                _sb_cr = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
+                                    (_sel_sales,),
+                                ).fetchone()[0]
+                                _sb_cur = float(_sb_open or 0) + float(_sb_dr or 0) - float(_sb_cr or 0)
+                                st.markdown(
+                                    f"<div class='fe-sale-plabel' style='margin-top:5px;font-size:12px;font-weight:400;'>Current Balance :"
+                                    f"<span class='fe-sale-cbalance' style='color:#15803d;font-size:12px;font-weight:400;'> {abs(_sb_cur):,.2f} Cr</span></div>",
+                                    unsafe_allow_html=True,
+                                )
                     st.markdown("---")
                     st.stop()
                 pending_cells = st.session_state.get("fe_pending_cells")
