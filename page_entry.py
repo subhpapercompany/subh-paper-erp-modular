@@ -82,6 +82,30 @@ def render():
         border-radius: 4px;
         white-space: nowrap;
     }
+    .fe-sale-amt-box {
+        margin-top: 2px;
+        padding: 5px 10px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #0f172a;
+        background: #ffffff;
+        border: 1px solid #94a3b8;
+        border-radius: 6px;
+        text-align: right;
+        white-space: nowrap;
+    }
+    .fe-sale-editing-badge {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #92400e;
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-radius: 6px;
+        white-space: nowrap;
+    }
     div[data-testid="stColumn"] [data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .fe-item-head) {
         margin-top: -8px !important;
         margin-bottom: 0 !important;
@@ -1557,12 +1581,43 @@ def render():
                         _sale_next_no = (max(_sale_int) + 1) if _sale_int else 1
                     except Exception:
                         _sale_next_no = 1
+                    _sale_editing_no = st.session_state.get("fe_sale_editing_no")
+                    _sale_display_no = _sale_editing_no if _sale_editing_no else _sale_next_no
+                    _flash_msg = st.session_state.pop("fe_flash", None)
+                    if _flash_msg:
+                        st.success(_flash_msg)
                     st.markdown("""
                     <div class="fe-topbar">
                         <div class="fe-brand">🧾 Financial Entry — Sale</div>
                         <div class="fe-company">🏢 SUBH PAPER COMPANY</div>
                     </div>
                     """, unsafe_allow_html=True)
+                    _pending_load = st.session_state.get("fe_sale_pending_load")
+                    if _pending_load:
+                        _pd_party = _pending_load.get("party")
+                        _pd_sales = _pending_load.get("sales")
+                        _pd_date = _pending_load.get("date")
+                        _pd_items = _pending_load.get("items") or []
+                        if _pd_party:
+                            st.session_state["fe_sale_party_pick"] = _pd_party
+                            st.session_state["fe_sale_selected_party"] = _pd_party
+                        if _pd_sales:
+                            st.session_state["fe_sale_sales_pick"] = _pd_sales
+                            st.session_state["fe_sale_selected_salesledger"] = _pd_sales
+                        if _pd_date:
+                            st.session_state["fe_sale_date"] = _pd_date
+                        st.session_state["fe_sale_item_count"] = max(1, len(_pd_items))
+                        for _pi, (it, qq, rr) in enumerate(_pd_items):
+                            st.session_state[f"fe_sale_item_{_pi}"] = str(it)
+                            st.session_state[f"fe_sale_lastitem_{_pi}"] = str(it)
+                            st.session_state[f"fe_sale_qty_{_pi}"] = float(qq or 0)
+                            st.session_state[f"fe_sale_rate_{_pi}"] = float(rr or 0)
+                        _pd_vno = _pending_load.get("voucher_no")
+                        if _pd_vno:
+                            st.session_state["fe_sale_editing_no"] = _pd_vno
+                        st.session_state["fe_flash"] = f"Voucher #{_pd_vno} load ho gaya — ab edit karke Save dabayein."
+                        st.session_state.pop("fe_sale_pending_load", None)
+                        st.rerun()
                     cl, cr = st.columns([3.6, 1.6], vertical_alignment="center")
                     with cl:
                         back_col, no_col = st.columns([0.5, 4])
@@ -1575,7 +1630,7 @@ def render():
                         with no_col:
                             st.markdown(
                                 f"<span class='tally-avc-type-sm'>Sales&nbsp;&nbsp;No.&nbsp;:</span>"
-                                f"<span class='fe-sale-auto-no'><b>{_sale_next_no}</b></span>",
+                                f"<span class='fe-sale-auto-no'><b>{_sale_display_no}</b></span>",
                                 unsafe_allow_html=True
                             )
                     with cr:
@@ -1643,100 +1698,6 @@ def render():
                     # ---- PARTY A/c NAME + SALES LEDGER (TALLY STYLE) ----
                     _sel_party = st.session_state.get("fe_sale_selected_party")
                     _sel_sales = st.session_state.get("fe_sale_selected_salesledger")
-                    _pcol = st.container()
-                    with _pcol:
-                        _pl_l, _pl_f = st.columns([0.9, 5.0], vertical_alignment="center")
-                        with _pl_l:
-                            st.markdown("<div class='fe-sale-inline-label'>Party A/c Name :</div>", unsafe_allow_html=True)
-                        with _pl_f:
-                            _all_ledgers = [r[0] for r in conn.execute(
-                                "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
-                            ).fetchall()]
-                            _chose = st.selectbox(
-                                "Party Ledger chunein:",
-                                _all_ledgers,
-                                index=None,
-                                key="fe_sale_party_pick",
-                                placeholder="Type karke ledger chunein...",
-                                label_visibility="collapsed",
-                            )
-                            if _chose:
-                                st.session_state["fe_sale_selected_party"] = _chose
-                                _sel_party = _chose
-                            if _sel_party:
-                                _bal_open = conn.execute(
-                                    "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
-                                    "WHERE LOWER(TRIM(ledger_name)) = LOWER(?)",
-                                    (_sel_party,),
-                                ).fetchone()[0]
-                                _bal_dr = conn.execute(
-                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
-                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
-                                    (_sel_party,),
-                                ).fetchone()[0]
-                                _bal_cr = conn.execute(
-                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
-                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
-                                    (_sel_party,),
-                                ).fetchone()[0]
-                                _bal_cur = float(_bal_open or 0) + float(_bal_dr or 0) - float(_bal_cr or 0)
-                                st.markdown(
-                                    f"<div class='fe-sale-bal-row fe-sale-plabel' style='font-size:12px;font-weight:400;'>Current Balance :"
-                                    f"<span class='fe-sale-cbalance' style='font-size:12px;font-weight:400;'> {abs(_bal_cur):,.2f} Dr</span></div>",
-                                    unsafe_allow_html=True,
-                                )
-                        _sl_l, _sl_f = st.columns([0.9, 5.0], vertical_alignment="center")
-                        with _sl_l:
-                            st.markdown("<div class='fe-sale-inline-label' style='margin-top:12px;'>Sales Ledger :</div>", unsafe_allow_html=True)
-                        with _sl_f:
-                            _all_sl = [r[0] for r in conn.execute(
-                                "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
-                            ).fetchall()]
-                            _chose_sl = st.selectbox(
-                                "Sales Ledger chunein:",
-                                _all_sl,
-                                index=None,
-                                key="fe_sale_sales_pick",
-                                placeholder="Type karke ledger chunein...",
-                                label_visibility="collapsed",
-                            )
-                            if _chose_sl:
-                                st.session_state["fe_sale_selected_salesledger"] = _chose_sl
-                                _sel_sales = _chose_sl
-                            if _sel_sales:
-                                _sb_open = conn.execute(
-                                    "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
-                                    "WHERE LOWER(TRIM(ledger_name)) = LOWER(?)",
-                                    (_sel_sales,),
-                                ).fetchone()[0]
-                                _sb_dr = conn.execute(
-                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
-                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
-                                    (_sel_sales,),
-                                ).fetchone()[0]
-                                _sb_cr = conn.execute(
-                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
-                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
-                                    (_sel_sales,),
-                                ).fetchone()[0]
-                                _sb_cur = float(_sb_open or 0) + float(_sb_dr or 0) - float(_sb_cr or 0)
-                                st.markdown(
-                                    f"<div class='fe-sale-bal-row fe-sale-plabel' style='font-size:12px;font-weight:400;'>Current Balance :"
-                                    f"<span class='fe-sale-cbalance' style='color:#15803d;font-size:12px;font-weight:400;'> {abs(_sb_cur):,.2f} Cr</span></div>",
-                                    unsafe_allow_html=True,
-                                )
-                    st.markdown(
-                        "<div class='fe-item-head'>"
-                        "<span class='c' style='width:55%;'>Particulars / Item Name</span>"
-                        "<span class='c' style='width:11%;'>HSN/SAC</span>"
-                        "<span class='c' style='width:6%;'>Tax%</span>"
-                        "<span class='c' style='width:9%;'>Quantity</span>"
-                        "<span class='c' style='width:11%;'>Rate</span>"
-                        "<span class='c' style='width:8%; text-align:right;'>Amount</span>"
-                        "</div>",
-                        unsafe_allow_html=True,
-                    )
-                    # ---- SALE ITEMS GRID ----
                     _st_code_map = {
                         "01": "Jammu and Kashmir", "02": "Himachal Pradesh", "03": "Punjab", "04": "Chandigarh",
                         "05": "Uttarakhand", "06": "Haryana", "07": "Delhi", "08": "Rajasthan", "09": "Uttar Pradesh",
@@ -1749,29 +1710,7 @@ def render():
                         "37": "Andhra Pradesh", "38": "Ladakh",
                     }
                     _comp_state_code = None
-                    try:
-                        _comp_state = (conn.execute("SELECT state FROM company_master LIMIT 1").fetchone() or (None,))[0]
-                        if _comp_state:
-                            for _c, _n in _st_code_map.items():
-                                if str(_comp_state).strip().lower() == _n.lower():
-                                    _comp_state_code = _c
-                                    break
-                    except Exception:
-                        pass
                     _party_state_code = None
-                    _party_gst_no = None
-                    try:
-                        if _sel_party:
-                            _r = conn.execute(
-                                "SELECT gst_no FROM ledger_master WHERE LOWER(TRIM(ledger_name)) = LOWER(?) LIMIT 1",
-                                (_sel_party,),
-                            ).fetchone()
-                            if _r:
-                                _party_gst_no = str(_r[0] or "").strip()
-                                if _party_gst_no and _party_gst_no[:2].isdigit():
-                                    _party_state_code = _party_gst_no[:2]
-                    except Exception:
-                        pass
 
                     def _sale_item_options():
                         opts = []
@@ -1832,6 +1771,158 @@ def render():
                             pass
                         return meta
 
+                    def _sale_net_from_state():
+                        _n = max(1, int(st.session_state.get("fe_sale_item_count", 1)))
+                        _tot = 0.0
+                        _grps = {}
+                        for _i in range(_n):
+                            _nm = st.session_state.get(f"fe_sale_item_{_i}")
+                            if not _nm:
+                                continue
+                            _meta = _sale_item_meta(_nm)
+                            _ql = float(st.session_state.get(f"fe_sale_qty_{_i}", 0.0) or 0.0)
+                            _pr = st.session_state.get(f"fe_sale_lastitem_{_i}")
+                            if _nm != _pr:
+                                _rt = float(_meta["rate"] or 0)
+                            else:
+                                _rt = float(st.session_state.get(f"fe_sale_rate_{_i}", _meta["rate"]) or _meta["rate"] or 0)
+                            _am = round(_ql * _rt, 2)
+                            _tot += _am
+                            try:
+                                _tv = float(str(_meta.get("tax") or "").strip() or 0)
+                            except (TypeError, ValueError):
+                                _tv = 0.0
+                            _grps[_tv] = _grps.get(_tv, 0.0) + _am
+                        _gt = 0.0
+                        for _gr in _grps:
+                            if _gr > 0 and _grps[_gr] > 0:
+                                _gt += round(_grps[_gr] * _gr / 100.0, 2)
+                        return round(_tot + _gt, 2)
+
+                    # ---- SALES ITEMS GRID (metadata shared) ----
+                    try:
+                        _comp_state = (conn.execute("SELECT state FROM company_master LIMIT 1").fetchone() or (None,))[0]
+                        if _comp_state:
+                            for _c, _n in _st_code_map.items():
+                                if str(_comp_state).strip().lower() == _n.lower():
+                                    _comp_state_code = _c
+                                    break
+                    except Exception:
+                        pass
+                    _party_gst_no = None
+                    try:
+                        if _sel_party:
+                            _r = conn.execute(
+                                "SELECT gst_no FROM ledger_master WHERE LOWER(TRIM(ledger_name)) = LOWER(?) LIMIT 1",
+                                (_sel_party,),
+                            ).fetchone()
+                            if _r:
+                                _party_gst_no = str(_r[0] or "").strip()
+                                if _party_gst_no and _party_gst_no[:2].isdigit():
+                                    _party_state_code = _party_gst_no[:2]
+                    except Exception:
+                        pass
+                    _pcol = st.container()
+                    with _pcol:
+                        _pl_l, _pl_f, _pl_a = st.columns([0.9, 3.6, 1.0], vertical_alignment="center")
+                        with _pl_l:
+                            st.markdown("<div class='fe-sale-inline-label'>Party A/c Name :</div>", unsafe_allow_html=True)
+                        with _pl_f:
+                            _all_ledgers = [r[0] for r in conn.execute(
+                                "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
+                            ).fetchall()]
+                            _chose = st.selectbox(
+                                "Party Ledger chunein:",
+                                _all_ledgers,
+                                index=None,
+                                key="fe_sale_party_pick",
+                                placeholder="Type karke ledger chunein...",
+                                label_visibility="collapsed",
+                            )
+                            if _chose:
+                                st.session_state["fe_sale_selected_party"] = _chose
+                                _sel_party = _chose
+                            if _sel_party:
+                                _bal_open = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
+                                    "WHERE LOWER(TRIM(ledger_name)) = LOWER(?)",
+                                    (_sel_party,),
+                                ).fetchone()[0]
+                                _bal_dr = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
+                                    (_sel_party,),
+                                ).fetchone()[0]
+                                _bal_cr = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
+                                    (_sel_party,),
+                                ).fetchone()[0]
+                                _bal_cur = float(_bal_open or 0) + float(_bal_dr or 0) - float(_bal_cr or 0)
+                                st.markdown(
+                                    f"<div class='fe-sale-bal-row fe-sale-plabel' style='font-size:12px;font-weight:400;'>Current Balance :"
+                                    f"<span class='fe-sale-cbalance' style='font-size:12px;font-weight:400;'> {abs(_bal_cur):,.2f} Dr</span></div>",
+                                    unsafe_allow_html=True,
+                                )
+                        with _pl_a:
+                            _party_amt = _sale_net_from_state()
+                            st.markdown(
+                                f"<div class='fe-sale-inline-label' style='margin-top:14px;'>Debit Amount :</div>"
+                                f"<div class='fe-sale-amt-box'>₹ {_party_amt:,.2f}</div>",
+                                unsafe_allow_html=True,
+                            )
+                        _sl_l, _sl_f, _sl_x = st.columns([0.9, 3.6, 1.0], vertical_alignment="center")
+                        with _sl_l:
+                            st.markdown("<div class='fe-sale-inline-label' style='margin-top:12px;'>Sales Ledger :</div>", unsafe_allow_html=True)
+                        with _sl_f:
+                            _all_sl = [r[0] for r in conn.execute(
+                                "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
+                            ).fetchall()]
+                            _chose_sl = st.selectbox(
+                                "Sales Ledger chunein:",
+                                _all_sl,
+                                index=None,
+                                key="fe_sale_sales_pick",
+                                placeholder="Type karke ledger chunein...",
+                                label_visibility="collapsed",
+                            )
+                            if _chose_sl:
+                                st.session_state["fe_sale_selected_salesledger"] = _chose_sl
+                                _sel_sales = _chose_sl
+                            if _sel_sales:
+                                _sb_open = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(opening_balance,0)),0) FROM ledger_master "
+                                    "WHERE LOWER(TRIM(ledger_name)) = LOWER(?)",
+                                    (_sel_sales,),
+                                ).fetchone()[0]
+                                _sb_dr = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
+                                    (_sel_sales,),
+                                ).fetchone()[0]
+                                _sb_cr = conn.execute(
+                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
+                                    (_sel_sales,),
+                                ).fetchone()[0]
+                                _sb_cur = float(_sb_open or 0) + float(_sb_dr or 0) - float(_sb_cr or 0)
+                                st.markdown(
+                                    f"<div class='fe-sale-bal-row fe-sale-plabel' style='font-size:12px;font-weight:400;'>Current Balance :"
+                                    f"<span class='fe-sale-cbalance' style='color:#15803d;font-size:12px;font-weight:400;'> {abs(_sb_cur):,.2f} Cr</span></div>",
+                                    unsafe_allow_html=True,
+                                )
+                    st.markdown(
+                        "<div class='fe-item-head'>"
+                        "<span class='c' style='width:55%;'>Particulars / Item Name</span>"
+                        "<span class='c' style='width:11%;'>HSN/SAC</span>"
+                        "<span class='c' style='width:6%;'>Tax%</span>"
+                        "<span class='c' style='width:9%;'>Quantity</span>"
+                        "<span class='c' style='width:11%;'>Rate</span>"
+                        "<span class='c' style='width:8%; text-align:right;'>Amount</span>"
+                        "</div>",
+                        unsafe_allow_html=True,
+                    )
+                    # ---- SALE ITEMS GRID ----
                     sale_item_count = max(1, int(st.session_state.get("fe_sale_item_count", 1)))
                     _sale_item_opts = _sale_item_options()
                     sale_item_rows = []
@@ -1934,6 +2025,190 @@ def render():
                         f"</div>",
                         unsafe_allow_html=True,
                     )
+                    # ---- SALE SAVE / EDIT / DELETE ----
+                    _sale_editing_no = st.session_state.get("fe_sale_editing_no")
+                    _sale_existing = []
+                    try:
+                        _sale_existing = [str(r[0]) for r in conn.execute(
+                            "SELECT DISTINCT invoice_no FROM voucher_entries WHERE mode='Sale' "
+                            "ORDER BY CAST(invoice_no AS INTEGER) DESC"
+                        ).fetchall()]
+                    except Exception:
+                        pass
+                    _saved_row = st.columns([2.0, 3.0], vertical_alignment="center")
+                    with _saved_row[0]:
+                        _edit_pick = st.selectbox(
+                            "Edit / Load Saved Voucher:", [""] + _sale_existing,
+                            index=(_sale_existing.index(_sale_editing_no) + 1) if _sale_editing_no in _sale_existing else 0,
+                            key="fe_sale_pick_existing", label_visibility="visible",
+                            format_func=lambda x: (f"Voucher #{x}" if x else "— Naya Voucher —"))
+                    with _saved_row[1]:
+                        _load_clicked = st.button("↩ Load", key="fe_sale_load_voucher", use_container_width=True,
+                                                  help="Saved voucher ko form me load karein (Edit)")
+                        _del_existing_clicked = st.button("🗑 Delete", key="fe_sale_del_existing",
+                                                          use_container_width=True, disabled=(not _sale_editing_no),
+                                                          help="Current loaded voucher delete karein")
+                    if _load_clicked and _edit_pick:
+                        _ln = str(_edit_pick)
+                        _lrows = conn.execute(
+                            "SELECT dr_cr, ledger_head, net_amount, entry_date FROM voucher_entries "
+                            "WHERE mode='Sale' AND invoice_no=? ORDER BY id ASC", (_ln,)
+                        ).fetchall()
+                        _lparty = next((r[1] for r in _lrows if str(r[0]).upper() == "DR"), None)
+                        _lsales = next((r[1] for r in _lrows if str(r[0]).upper() == "CR" and "GST" not in str(r[1]).upper() and str(r[1]).strip() not in ("CGST GST Output", "SGST GST Output", "IGST GST Output")), None)
+                        _ldate = None
+                        for r in _lrows:
+                            _dstr = str(r[3] or "").strip() if len(r) > 3 else ""
+                            if _dstr:
+                                try:
+                                    _ldate = datetime.datetime.strptime(_dstr, "%d/%m/%Y").date()
+                                except (TypeError, ValueError):
+                                    try:
+                                        _ldate = datetime.datetime.strptime(_dstr, "%Y-%m-%d").date()
+                                    except (TypeError, ValueError):
+                                        pass
+                                if _ldate:
+                                    break
+                        _litems = conn.execute(
+                            "SELECT item_name, qty, rate FROM voucher_inventory_items "
+                            "WHERE mode='Sale' AND voucher_no=? ORDER BY id ASC", (_ln,)
+                        ).fetchall()
+                        st.session_state["fe_sale_pending_load"] = {
+                            "party": _lparty, "sales": _lsales, "date": _ldate,
+                            "items": [(r[0], r[1], r[2]) for r in _litems],
+                            "voucher_no": _ln,
+                        }
+                        st.rerun()
+                    if _del_existing_clicked and _sale_editing_no:
+                        _dno = str(_sale_editing_no)
+                        _drestore = conn.execute(
+                            "SELECT item_name, qty FROM voucher_inventory_items WHERE mode='Sale' AND voucher_no=?",
+                            (_dno,)
+                        ).fetchall()
+                        for dt, dq in _drestore:
+                            conn.execute(
+                                "UPDATE inventory_item_master SET quantity = COALESCE(quantity,0) + ? WHERE item_name = ?",
+                                (float(dq or 0), dt)
+                            )
+                        conn.execute("DELETE FROM voucher_inventory_items WHERE mode='Sale' AND voucher_no=?", (_dno,))
+                        conn.execute("DELETE FROM voucher_entries WHERE mode='Sale' AND invoice_no=?", (_dno,))
+                        conn.commit()
+                        for key in ("fe_sale_editing_no", "fe_sale_pick_existing"):
+                            st.session_state.pop(key, None)
+                        st.session_state["fe_flash"] = f"Sale Voucher #{_dno} delete ho gaya."
+                        st.rerun()
+                    _action_row = st.columns([2.0, 1.0, 1.0])
+                    _sale_save_clicked = _action_row[0].button("💾 Save Sale Voucher (F11)", type="primary",
+                                                               use_container_width=True, key="fe_sale_save_voucher")
+                    _sale_clear_clicked = _action_row[1].button("🧹 Clear (F6)", use_container_width=True, key="fe_sale_clear")
+                    if _sale_editing_no:
+                        _action_row[2].markdown(
+                            f"<div class='fe-sale-editing-badge'>✏️ Editing Voucher #{html.escape(_sale_editing_no)}</div>",
+                            unsafe_allow_html=True
+                        )
+                    if _sale_clear_clicked:
+                        for key in list(st.session_state.keys()):
+                            if str(key).startswith("fe_sale_") or str(key) in ("fe_pick_existing",):
+                                st.session_state.pop(key, None)
+                        st.session_state["fe_sale_item_count"] = 1
+                        st.rerun()
+                    if _sale_save_clicked:
+                        _valid_items = []
+                        _inv_total = 0.0
+                        for _row in sale_item_rows:
+                            if _row[0] and float(_row[2] or 0) > 0:
+                                _valid_items.append(_row)
+                                _inv_total += float(_row[4] or 0)
+                        _inv_total = round(_inv_total, 2)
+                        if not _sel_party:
+                            st.error("Party A/c Name select karein.")
+                        elif not _sel_sales:
+                            st.error("Sales Ledger select karein.")
+                        elif not _valid_items:
+                            st.error("Kam se kam ek item quantity ke saath chahiye.")
+                        else:
+                            _vno = _sale_editing_no if _sale_editing_no else str(_sale_next_no)
+                            if _sale_editing_no:
+                                _drestore = conn.execute(
+                                    "SELECT item_name, qty FROM voucher_inventory_items WHERE mode='Sale' AND voucher_no=?",
+                                    (_vno,)
+                                ).fetchall()
+                                for dt, dq in _drestore:
+                                    conn.execute(
+                                        "UPDATE inventory_item_master SET quantity = COALESCE(quantity,0) + ? WHERE item_name = ?",
+                                        (float(dq or 0), dt)
+                                    )
+                                conn.execute("DELETE FROM voucher_inventory_items WHERE mode='Sale' AND voucher_no=?", (_vno,))
+                                conn.execute("DELETE FROM voucher_entries WHERE mode='Sale' AND invoice_no=?", (_vno,))
+                            _sale_date_str = _sale_dt.strftime("%d/%m/%Y")
+                            _remarks_val = st.session_state.get("fe_remarks", "")
+                            conn.execute(
+                                """INSERT INTO voucher_entries
+                                (mode, entry_date, invoice_no, dr_cr, ledger_head,
+                                 invoice_amount, tds, net_amount, remarks, bill_ref)
+                                VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                                ("Sale", _sale_date_str, _vno, "Dr", _sel_party,
+                                 _net_amt, 0.0, _net_amt, _remarks_val, "SaleParty")
+                            )
+                            conn.execute(
+                                """INSERT INTO voucher_entries
+                                (mode, entry_date, invoice_no, dr_cr, ledger_head,
+                                 invoice_amount, tds, net_amount, remarks, bill_ref)
+                                VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                                ("Sale", _sale_date_str, _vno, "Cr", _sel_sales,
+                                 _sale_item_total, 0.0, _sale_item_total, _remarks_val, "SaleSales")
+                            )
+                            for _grt in sorted(_tax_groups, reverse=True):
+                                if _grt <= 0 or _tax_groups[_grt] <= 0:
+                                    continue
+                                _gst_amt = round(_tax_groups[_grt] * _grt / 100.0, 2)
+                                if _is_interstate:
+                                    conn.execute(
+                                        """INSERT INTO voucher_entries
+                                        (mode, entry_date, invoice_no, dr_cr, ledger_head,
+                                         invoice_amount, tds, net_amount, remarks, bill_ref)
+                                        VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                                        ("Sale", _sale_date_str, _vno, "Cr", "IGST GST Output",
+                                         _gst_amt, 0.0, _gst_amt, _remarks_val, "SaleGST")
+                                    )
+                                    used_ledger = "IGST GST Output"
+                                else:
+                                    _cgst_amt = round(_gst_amt / 2.0, 2)
+                                    _sgst_amt = round(_gst_amt - _cgst_amt, 2)
+                                    conn.execute(
+                                        """INSERT INTO voucher_entries
+                                        (mode, entry_date, invoice_no, dr_cr, ledger_head,
+                                         invoice_amount, tds, net_amount, remarks, bill_ref)
+                                        VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                                        ("Sale", _sale_date_str, _vno, "Cr", "CGST GST Output",
+                                         _cgst_amt, 0.0, _cgst_amt, _remarks_val, "SaleGST")
+                                    )
+                                    conn.execute(
+                                        """INSERT INTO voucher_entries
+                                        (mode, entry_date, invoice_no, dr_cr, ledger_head,
+                                         invoice_amount, tds, net_amount, remarks, bill_ref)
+                                        VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                                        ("Sale", _sale_date_str, _vno, "Cr", "SGST GST Output",
+                                         _sgst_amt, 0.0, _sgst_amt, _remarks_val, "SaleGST")
+                                    )
+                            for _row in _valid_items:
+                                _uv = _row[1].get("unit") if _row[1] else ""
+                                conn.execute(
+                                    """INSERT INTO voucher_inventory_items
+                                    (voucher_no, mode, entry_date, item_name, unit, qty, rate, amount)
+                                    VALUES (?,?,?,?,?,?,?,?)""",
+                                    (_vno, "Sale", _sale_date_str, _row[0], _uv, _row[2], _row[3], _row[4])
+                                )
+                                conn.execute(
+                                    "UPDATE inventory_item_master SET quantity = COALESCE(quantity,0) - ? WHERE item_name = ?",
+                                    (float(_row[2] or 0), _row[0])
+                                )
+                            conn.commit()
+                            st.session_state["fe_sale_editing_no"] = _vno
+                            st.session_state["fe_flash"] = (
+                                f"Sale Voucher #{_vno} {'updated' if _sale_editing_no else 'saved'} successfully."
+                            )
+                            st.rerun()
                     st.markdown("---")
                     st.stop()
                 pending_cells = st.session_state.get("fe_pending_cells")
