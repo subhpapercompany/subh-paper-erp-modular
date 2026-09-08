@@ -68,6 +68,27 @@ def render():
         margin-top: -15px !important;
         margin-bottom: 0 !important;
     }
+    .fe-item-head {
+        display: flex;
+        align-items: flex-end;
+        width: 100%;
+        margin-top: 15pt;
+        font-size: 12px;
+        font-weight: 600;
+        color: #0f172a;
+        white-space: nowrap;
+    }
+    div[data-testid="stColumn"] [data-testid="stElementContainer"]:has([data-testid="stMarkdown"] .fe-item-head) {
+        margin-top: -62px !important;
+        margin-bottom: 0 !important;
+    }
+    .fe-item-head .d {
+        flex: 1;
+        border-bottom: 1px dotted #94a3b8;
+        margin: 0 4px;
+        align-self: flex-end;
+    }
+    .fe-item-head span.c { flex: 0 0 auto; }
     div[data-testid="stColumn"] [data-testid="stInput"] input,
     div[data-testid="stColumn"] input[type="text"],
     div[data-testid="stColumn"] input[type="number"] {
@@ -1643,6 +1664,17 @@ def render():
                                 st.markdown(
                                     f"<div class='fe-sale-bal-row fe-sale-plabel' style='font-size:12px;font-weight:400;'>Current Balance :"
                                     f"<span class='fe-sale-cbalance' style='color:#15803d;font-size:12px;font-weight:400;'> {abs(_sb_cur):,.2f} Cr</span></div>",
+                                    unsafe_allow_html=True,
+                                )
+                                st.markdown(
+                                    "<div class='fe-item-head'>"
+                                    "<span class='c' style='width:34%;'>Particulars / Item Name</span><span class='d'></span>"
+                                    "<span class='c' style='width:11%;'>HSN/SAC</span><span class='d'></span>"
+                                    "<span class='c' style='width:7%;'>Tax%</span><span class='d'></span>"
+                                    "<span class='c' style='width:10%;'>Quantity</span><span class='d'></span>"
+                                    "<span class='c' style='width:11%;'>Rate</span><span class='d'></span>"
+                                    "<span class='c' style='width:13%;'>Amount</span>"
+                                    "</div>",
                                     unsafe_allow_html=True,
                                 )
                     st.markdown("---")
