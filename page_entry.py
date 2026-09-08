@@ -87,6 +87,38 @@ def render():
         margin-bottom: 0 !important;
     }
     .fe-item-head span.c { flex: 0 1 auto; }
+    .fe-item-row {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        margin-top: 4px;
+        padding: 3px 10px;
+        gap: 6px;
+        font-size: 12px;
+    }
+    .fe-item-row > div { min-width: 0; }
+    .fe-item-row .fe-amt {
+        text-align: right;
+        font-weight: 700;
+        color: #0f172a;
+        white-space: nowrap;
+    }
+    .fe-item-row input {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        border-bottom: 1px solid #94a3b8 !important;
+        border-radius: 0 !important;
+        font-size: 12px !important;
+        color: #0f172a !important;
+    }
+    .fe-item-fld {
+        font-size: 12px;
+        color: #0f172a;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     div[data-testid="stColumn"] [data-testid="stInput"] input,
     div[data-testid="stColumn"] input[type="text"],
     div[data-testid="stColumn"] input[type="number"] {
@@ -1673,6 +1705,137 @@ def render():
                         "<span class='c' style='width:11%;'>Rate</span>"
                         "<span class='c' style='width:8%; text-align:right;'>Amount</span>"
                         "</div>",
+                        unsafe_allow_html=True,
+                    )
+                    # ---- SALE ITEMS GRID ----
+                    def _sale_item_options():
+                        opts = []
+                        try:
+                            pcs = conn.execute(
+                                "SELECT DISTINCT product_code FROM po_released_entries "
+                                "WHERE product_code IS NOT NULL AND TRIM(product_code)<>''"
+                            ).fetchall()
+                            for (code,) in pcs:
+                                code = str(code).strip()
+                                if code and code not in opts:
+                                    opts.append(code)
+                        except Exception:
+                            pass
+                        try:
+                            for (nm,) in conn.execute(
+                                "SELECT item_name FROM inventory_item_master "
+                                "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' ORDER BY item_name"
+                            ).fetchall():
+                                nm = str(nm).strip()
+                                if nm and nm not in opts:
+                                    opts.append(nm)
+                        except Exception:
+                            pass
+                        return opts
+
+                    def _sale_item_meta(name):
+                        name = str(name or "").strip()
+                        meta = {"name": name, "hsn": "", "tax": "", "rate": 0.0, "unit": ""}
+                        inv_row = None
+                        try:
+                            inv_row = conn.execute(
+                                "SELECT hsn_code, gst_rate, rate, unit FROM inventory_item_master "
+                                "WHERE item_name = ? LIMIT 1",
+                                (name,),
+                            ).fetchone()
+                        except Exception:
+                            pass
+                        if inv_row:
+                            meta.update({"hsn": str(inv_row[0] or "").strip(), "tax": str(inv_row[1] or "18").strip(),
+                                         "rate": float(inv_row[2] or 0), "unit": str(inv_row[3] or "").strip()})
+                        try:
+                            order_month = _sale_dt.strftime("%B %Y")
+                            prow = conn.execute(
+                                "SELECT po_rate FROM po_released_entries "
+                                "WHERE product_code = ? AND order_month = ? ORDER BY id DESC LIMIT 1",
+                                (name, order_month),
+                            ).fetchone()
+                            if not prow:
+                                prow = conn.execute(
+                                    "SELECT po_rate FROM po_released_entries "
+                                    "WHERE product_code = ? ORDER BY id DESC LIMIT 1",
+                                    (name,),
+                                ).fetchone()
+                            if prow:
+                                meta["rate"] = float(prow[0] or 0)
+                        except Exception:
+                            pass
+                        return meta
+
+                    sale_item_count = max(1, int(st.session_state.get("fe_sale_item_count", 1)))
+                    _sale_item_opts = _sale_item_options()
+                    sale_item_rows = []
+                    _sale_item_total = 0.0
+                    for _si in range(sale_item_count):
+                        _prev_item = st.session_state.get(f"fe_sale_lastitem_{_si}")
+                        _ic = st.columns([55, 11, 6, 9, 11, 8], vertical_alignment="center")
+                        with _ic[0]:
+                            _isd, _iss = st.columns([0.5, 6.5], vertical_alignment="center")
+                            _del_item = _isd.button("🗑", key=f"fe_sale_item_del_{_si}", help="Row delete karein")
+                            with _iss:
+                                _itm = st.selectbox(
+                                    "Particulars", _sale_item_opts, index=(_sale_item_opts.index(_prev_item) if _prev_item in _sale_item_opts else None),
+                                    key=f"fe_sale_item_{_si}", placeholder="Item chunein...",
+                                    label_visibility="collapsed")
+                        if _itm != _prev_item:
+                            if _itm:
+                                _new_meta = _sale_item_meta(_itm)
+                                st.session_state[f"fe_sale_lastitem_{_si}"] = _itm
+                                st.session_state[f"fe_sale_rate_{_si}"] = _new_meta["rate"]
+                                st.session_state[f"fe_sale_qty_{_si}"] = 0.0
+                            else:
+                                st.session_state[f"fe_sale_lastitem_{_si}"] = None
+                        _im = _sale_item_meta(_itm) if _itm else {"name": "", "hsn": "", "tax": "", "rate": 0.0, "unit": ""}
+                        with _ic[1]:
+                            st.markdown(f"<div class='fe-item-fld' style='padding-top:6px;'>{html.escape(_im['hsn'])}</div>", unsafe_allow_html=True)
+                        with _ic[2]:
+                            st.markdown(f"<div class='fe-item-fld' style='padding-top:6px;'>{html.escape(_im['tax'])}</div>", unsafe_allow_html=True)
+                        with _ic[3]:
+                            _sqty = st.number_input("Qty", min_value=0.0, step=1.0, value=float(st.session_state.get(f"fe_sale_qty_{_si}", 0.0)),
+                                                    format="%.2f", key=f"fe_sale_qty_{_si}", label_visibility="collapsed")
+                        with _ic[4]:
+                            _srt = st.number_input("Rate", min_value=0.0, step=0.01, value=float(st.session_state.get(f"fe_sale_rate_{_si}", _im["rate"])),
+                                                   format="%.2f", key=f"fe_sale_rate_{_si}", label_visibility="collapsed")
+                        _qtr = float(_sqty or 0)
+                        _amt = round(_qtr * float(_srt or 0), 2)
+                        with _ic[5]:
+                            st.markdown(f"<div class='fe-item-fld fe-amt' style='padding-top:6px;'>₹ {_amt:,.2f}</div>", unsafe_allow_html=True)
+                        sale_item_rows.append((_itm, _im, _qtr, float(_srt or 0), _amt, _del_item))
+                        _sale_item_total += _amt
+                    _si_del = next((i for i, r in enumerate(sale_item_rows) if r[5]), None)
+                    if _si_del is not None:
+                        _cur = sale_item_count
+                        if _cur <= 1:
+                            st.warning("Kam se kam ek item row required hai.")
+                        else:
+                            for _fj in range(_si_del, _cur - 1):
+                                _to = _fj
+                                _fr = _fj + 1
+                                for _fld in ("item", "qty", "rate"):
+                                    _sk = f"fe_sale_{_fld}_{_fr}"
+                                    _dk = f"fe_sale_{_fld}_{_to}"
+                                    if _sk in st.session_state:
+                                        st.session_state[_dk] = st.session_state[_sk]
+                                _sk = f"fe_sale_lastitem_{_fr}"
+                                _dk = f"fe_sale_lastitem_{_to}"
+                                if _sk in st.session_state:
+                                    st.session_state[_dk] = st.session_state[_sk]
+                            for _fld in ("item", "qty", "rate"):
+                                st.session_state.pop(f"fe_sale_{_fld}_{_cur - 1}", None)
+                            st.session_state.pop(f"fe_sale_lastitem_{_cur - 1}", None)
+                            st.session_state["fe_sale_item_count"] = _cur - 1
+                            st.rerun()
+                    _icb = st.columns([0.5, 4.5])
+                    if _icb[0].button("＋ Item", key="fe_sale_item_add"):
+                        st.session_state["fe_sale_item_count"] = sale_item_count + 1
+                        st.rerun()
+                    _icb[1].markdown(
+                        f"<div style='text-align:right;font-size:13px;font-weight:700;color:#134e4a;'>Total : ₹ {_sale_item_total:,.2f}</div>",
                         unsafe_allow_html=True,
                     )
                     st.markdown("---")
