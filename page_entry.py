@@ -1666,12 +1666,12 @@ def render():
                                 )
                     st.markdown(
                         "<div class='fe-item-head'>"
-                        "<span class='c' style='width:34%;'>Particulars / Item Name</span>"
-                        "<span class='c' style='width:12%;'>HSN/SAC</span>"
-                        "<span class='c' style='width:7%;'>Tax%</span>"
-                        "<span class='c' style='width:11%;'>Quantity</span>"
-                        "<span class='c' style='width:14%;'>Rate</span>"
-                        "<span class='c' style='width:14%;'>Amount</span>"
+                        "<span class='c' style='width:55%;'>Particulars / Item Name</span>"
+                        "<span class='c' style='width:11%;'>HSN/SAC</span>"
+                        "<span class='c' style='width:6%;'>Tax%</span>"
+                        "<span class='c' style='width:9%;'>Quantity</span>"
+                        "<span class='c' style='width:11%;'>Rate</span>"
+                        "<span class='c' style='width:8%; text-align:right;'>Amount</span>"
                         "</div>",
                         unsafe_allow_html=True,
                     )
