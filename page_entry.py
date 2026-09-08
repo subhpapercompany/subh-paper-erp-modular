@@ -51,6 +51,11 @@ def render():
         border: 1px solid rgba(49, 51, 63, 0.25) !important;
         border-radius: 6px;
     }
+    div[data-testid="stColumn"] div[data-testid="stSelectbox"],
+    div[data-testid="stColumn"] div[data-testid="stSelectbox"] > div {
+        max-width: none !important;
+        width: 100% !important;
+    }
     div[data-testid="stColumn"] [data-testid="stInput"] input,
     div[data-testid="stColumn"] input[type="text"],
     div[data-testid="stColumn"] input[type="number"] {
@@ -1562,7 +1567,6 @@ def render():
                                 key="fe_sale_party_pick",
                                 placeholder="Type karke ledger chunein...",
                                 label_visibility="collapsed",
-                                use_container_width=True,
                             )
                             if _chose:
                                 st.session_state["fe_sale_selected_party"] = _chose
@@ -1603,7 +1607,6 @@ def render():
                                 key="fe_sale_sales_pick",
                                 placeholder="Type karke ledger chunein...",
                                 label_visibility="collapsed",
-                                use_container_width=True,
                             )
                             if _chose_sl:
                                 st.session_state["fe_sale_selected_salesledger"] = _chose_sl
