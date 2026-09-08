@@ -1627,14 +1627,21 @@ def render():
                                 unsafe_allow_html=True,
                             )
                     with _lcol:
-                        _cre_show = st.session_state.get("fe_sale_show_create", False)
-                        if st.button("Create Ledger", key="fe_sale_lg_create_toggle", use_container_width=True):
-                            st.session_state["fe_sale_show_create"] = not _cre_show
-                            st.rerun()
-                    if st.session_state.get("fe_sale_show_create"):
-                        with st.form("fe_sale_create_ledger"):
-                            st.markdown("**➕ Create New Ledger**")
-                            _cn = st.text_input("Ledger Name")
+                        st.markdown(
+                            "<div class='fe-sale-plabel fe-lglabel' style='margin-top:4px;'>Create Ledger</div>",
+                            unsafe_allow_html=True,
+                        )
+                        with st.form("fe_sale_create_ledger", border=False):
+                            _crl, _crb = st.columns([3, 1.2], vertical_alignment="center")
+                            with _crl:
+                                _cn = st.text_input(
+                                    "Naya Ledger",
+                                    key="fe_sale_new_ledger",
+                                    label_visibility="collapsed",
+                                    placeholder="naya ledger type karein...",
+                                )
+                            with _crb:
+                                _sub = st.form_submit_button("➕", use_container_width=True, help="Ledger save karein")
                             _grps = [r[0] for r in conn.execute(
                                 "SELECT group_name FROM account_group_master ORDER BY group_name"
                             ).fetchall()] or ["Default"]
@@ -1642,8 +1649,9 @@ def render():
                                 "Group",
                                 _grps,
                                 index=_grps.index("Current Assets") if "Current Assets" in _grps else 0,
+                                key="fe_sale_new_group",
+                                label_visibility="collapsed",
                             )
-                            _sub = st.form_submit_button("💾 Save Ledger")
                             if _sub:
                                 _clean = (_cn or "").strip()
                                 if not _clean:
@@ -1656,12 +1664,29 @@ def render():
                                         (_clean, _cg),
                                     )
                                     conn.commit()
+                                    st.session_state.pop("fe_sale_new_ledger", None)
                                     if _sel_party and not _sel_sales:
                                         st.session_state["fe_sale_selected_salesledger"] = _clean
                                     else:
                                         st.session_state["fe_sale_selected_party"] = _clean
-                                    st.session_state["fe_sale_show_create"] = False
                                     st.rerun()
+                        st.components.v1.html("""
+                        <script>
+                        (()=>{
+                          const p=window.parent;
+                          const grow=()=>{
+                            const inp=p.document.querySelector('input[placeholder="naya ledger type karein..."]');
+                            if(!inp) return false;
+                            const pad=18;
+                            const w=Math.max(80, Math.min((inp.value.length||1)*8.5+pad, 260));
+                            inp.style.width=w+'px';
+                            return true;
+                          };
+                          if(!grow()){ const t=setInterval(()=>{ if(grow()) clearInterval(t); },250); }
+                          p.document.addEventListener('input', grow, true);
+                        })();
+                        </script>
+                        """, height=0, width=0)
                     st.markdown("---")
                     st.stop()
                 pending_cells = st.session_state.get("fe_pending_cells")
