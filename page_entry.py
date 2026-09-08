@@ -1546,9 +1546,9 @@ def render():
                     # ---- PARTY A/c NAME + SALES LEDGER (TALLY STYLE) ----
                     _sel_party = st.session_state.get("fe_sale_selected_party")
                     _sel_sales = st.session_state.get("fe_sale_selected_salesledger")
-                    _pcol, _lcol = st.columns([2.0, 1.4], vertical_alignment="top")
+                    _pcol = st.container()
                     with _pcol:
-                        _pl_l, _pl_f = st.columns([1.5, 2.6], vertical_alignment="center")
+                        _pl_l, _pl_f = st.columns([0.9, 5.0], vertical_alignment="center")
                         with _pl_l:
                             st.markdown("<div class='fe-sale-inline-label'>Party A/c Name :</div>", unsafe_allow_html=True)
                         with _pl_f:
@@ -1588,7 +1588,7 @@ def render():
                                 f"<span class='fe-sale-cbalance'> {abs(_bal_cur):,.2f} Dr</span></div>",
                                 unsafe_allow_html=True,
                             )
-                        _sl_l, _sl_f = st.columns([1.5, 2.6], vertical_alignment="center")
+                        _sl_l, _sl_f = st.columns([0.9, 5.0], vertical_alignment="center")
                         with _sl_l:
                             st.markdown("<div class='fe-sale-inline-label' style='margin-top:12px;'>Sales Ledger :</div>", unsafe_allow_html=True)
                         with _sl_f:
@@ -1628,8 +1628,6 @@ def render():
                                 f"<span class='fe-sale-cbalance' style='color:#15803d;'> {abs(_sb_cur):,.2f} Cr</span></div>",
                                 unsafe_allow_html=True,
                             )
-                    with _lcol:
-                        pass
                     st.markdown("---")
                     st.stop()
                 pending_cells = st.session_state.get("fe_pending_cells")
