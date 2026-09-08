@@ -119,6 +119,35 @@ def render():
         overflow: hidden;
         text-overflow: ellipsis;
     }
+    .fe-summary {
+        margin-left: auto;
+        margin-top: 10px;
+        width: fit-content;
+        min-width: 360px;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 12px;
+    }
+    .fe-summary .fe-sum-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 40px;
+        padding: 2px 0;
+    }
+    .fe-summary .fe-sum-total {
+        border-top: 1px solid #94a3b8;
+        margin-top: 4px;
+        padding-top: 5px;
+        font-weight: 700;
+        font-size: 13px;
+        color: #134e4a;
+    }
+    .fe-summary .fe-sum-amt {
+        color: #0f172a;
+        white-space: nowrap;
+    }
     div[data-testid="stColumn"] [data-testid="stInput"] input,
     div[data-testid="stColumn"] input[type="text"],
     div[data-testid="stColumn"] input[type="number"] {
@@ -1708,6 +1737,42 @@ def render():
                         unsafe_allow_html=True,
                     )
                     # ---- SALE ITEMS GRID ----
+                    _st_code_map = {
+                        "01": "Jammu and Kashmir", "02": "Himachal Pradesh", "03": "Punjab", "04": "Chandigarh",
+                        "05": "Uttarakhand", "06": "Haryana", "07": "Delhi", "08": "Rajasthan", "09": "Uttar Pradesh",
+                        "10": "Bihar", "11": "Sikkim", "12": "Arunachal Pradesh", "13": "Nagaland", "14": "Manipur",
+                        "15": "Mizoram", "16": "Tripura", "17": "Meghalaya", "18": "Assam", "19": "West Bengal",
+                        "20": "Jharkhand", "21": "Odisha", "22": "Chhattisgarh", "23": "Madhya Pradesh",
+                        "24": "Gujarat", "26": "Dadra and Nagar Haveli and Daman and Diu", "27": "Maharashtra",
+                        "29": "Karnataka", "30": "Goa", "31": "Lakshadweep", "32": "Kerala", "33": "Tamil Nadu",
+                        "34": "Puducherry", "35": "Andaman and Nicobar Islands", "36": "Telangana",
+                        "37": "Andhra Pradesh", "38": "Ladakh",
+                    }
+                    _comp_state_code = None
+                    try:
+                        _comp_state = (conn.execute("SELECT state FROM company_master LIMIT 1").fetchone() or (None,))[0]
+                        if _comp_state:
+                            for _c, _n in _st_code_map.items():
+                                if str(_comp_state).strip().lower() == _n.lower():
+                                    _comp_state_code = _c
+                                    break
+                    except Exception:
+                        pass
+                    _party_state_code = None
+                    _party_gst_no = None
+                    try:
+                        if _sel_party:
+                            _r = conn.execute(
+                                "SELECT gst_no FROM ledger_master WHERE LOWER(TRIM(ledger_name)) = LOWER(?) LIMIT 1",
+                                (_sel_party,),
+                            ).fetchone()
+                            if _r:
+                                _party_gst_no = str(_r[0] or "").strip()
+                                if _party_gst_no and _party_gst_no[:2].isdigit():
+                                    _party_state_code = _party_gst_no[:2]
+                    except Exception:
+                        pass
+
                     def _sale_item_options():
                         opts = []
                         try:
@@ -1834,8 +1899,39 @@ def render():
                     if _icb[0].button("＋ Item", key="fe_sale_item_add"):
                         st.session_state["fe_sale_item_count"] = sale_item_count + 1
                         st.rerun()
+                    _tax_groups = {}
+                    for _row in sale_item_rows:
+                        _ri_tax = str((_row[1].get("tax") if _row[1] else "") or "").strip()
+                        try:
+                            _ri_taxv = float(_ri_tax) if _ri_tax else 0.0
+                        except (TypeError, ValueError):
+                            _ri_taxv = 0.0
+                        _tax_groups[_ri_taxv] = _tax_groups.get(_ri_taxv, 0.0) + round(float(_row[4] or 0), 2)
+                    _is_interstate = bool(_comp_state_code and _party_state_code and _comp_state_code != _party_state_code)
+                    _gst_total = 0.0
+                    _gst_lines = ""
+                    for _grt in sorted(_tax_groups, reverse=True):
+                        if _grt <= 0 or _tax_groups[_grt] <= 0:
+                            continue
+                        _gst_amt = round(_tax_groups[_grt] * _grt / 100.0, 2)
+                        _gst_total += _gst_amt
+                        if _is_interstate:
+                            _gst_lines += (
+                                f"<div class='fe-sum-row'><span>IGST @ {_grt:.1f}%</span>"
+                                f"<span class='fe-sum-amt'>₹ {_gst_amt:,.2f}</span></div>"
+                            )
+                        else:
+                            _gst_lines += (
+                                f"<div class='fe-sum-row'><span>CGST @ {_grt/2:.1f}% &ensp;+&ensp; SGST @ {_grt/2:.1f}%</span>"
+                                f"<span class='fe-sum-amt'>₹ {_gst_amt:,.2f}</span></div>"
+                            )
+                    _net_amt = round(_sale_item_total + _gst_total, 2)
                     _icb[1].markdown(
-                        f"<div style='text-align:right;font-size:13px;font-weight:700;color:#134e4a;'>Total : ₹ {_sale_item_total:,.2f}</div>",
+                        f"<div class='fe-summary'>"
+                        f"<div class='fe-sum-row'><span>Total</span><span class='fe-sum-amt'>₹ {_sale_item_total:,.2f}</span></div>"
+                        f"{_gst_lines}"
+                        f"<div class='fe-sum-row fe-sum-total'><span>Net Amount</span><span class='fe-sum-amt'>₹ {_net_amt:,.2f}</span></div>"
+                        f"</div>",
                         unsafe_allow_html=True,
                     )
                     st.markdown("---")
