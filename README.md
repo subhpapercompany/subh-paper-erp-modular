@@ -28,9 +28,21 @@ calling `page_xxx.render()`. Only this file decides which tab renders.
 ## Run
 
 ```bash
-streamlit run app_web_final_updated2.py
+pip install -r requirements.txt
+streamlit run app_web_final_updated2.py --server.port 8510
 ```
 
+Log in with `admin` / `subh123`.
+
+### Fresh clone (no database)
+
 The database (`subh_paper_erp.db`) is intentionally **not** committed — it holds live
-business data and is excluded via `.gitignore`. Copy a fresh DB beside the scripts to
-run with data.
+business data and is excluded via `.gitignore`. On a fresh clone the app **auto-creates**
+the schema and default ledger groups on first run, but it starts **empty** (no company
+data). To run with your real data, copy `subh_paper_erp.db` from the working machine
+beside the scripts.
+
+### Notes
+
+- Always start Streamlit **from the repo folder** so the relative DB path resolves.
+- On another machine on the same LAN: `streamlit run app_web_final_updated2.py --server.port 8510 --server.address 0.0.0.0` and open `http://<that-ip>:8510`.
