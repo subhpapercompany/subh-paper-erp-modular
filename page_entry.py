@@ -1627,49 +1627,7 @@ def render():
                                 unsafe_allow_html=True,
                             )
                     with _lcol:
-                        def _fe_save_new_ledger_nb():
-                            _nm = (st.session_state.get("fe_sale_new_ledger") or "").strip()
-                            if not _nm:
-                                return
-                            _nc = get_db_connection()
-                            try:
-                                if _nc.execute("SELECT 1 FROM ledger_master WHERE LOWER(ledger_name) = LOWER(?)", (_nm,)).fetchone():
-                                    return
-                                _nc.execute(
-                                    "INSERT INTO ledger_master (ledger_name, group_name, opening_balance) VALUES (?,?,0)",
-                                    (_nm, "Current Assets"),
-                                )
-                                _nc.commit()
-                            finally:
-                                _nc.close()
-                            if st.session_state.get("fe_sale_selected_party") and not st.session_state.get("fe_sale_selected_salesledger"):
-                                st.session_state["fe_sale_selected_salesledger"] = _nm
-                            else:
-                                st.session_state["fe_sale_selected_party"] = _nm
-                        st.text_input(
-                            "Naya Ledger",
-                            key="fe_sale_new_ledger",
-                            label_visibility="collapsed",
-                            placeholder="naya ledger type karein...",
-                            on_change=_fe_save_new_ledger_nb,
-                        )
-                        st.components.v1.html("""
-                        <script>
-                        (()=>{
-                          const p=window.parent;
-                          const grow=()=>{
-                            const inp=p.document.querySelector('input[placeholder="naya ledger type karein..."]');
-                            if(!inp) return false;
-                            const pad=18;
-                            const w=Math.max(80, Math.min((inp.value.length||1)*8.5+pad, 260));
-                            inp.style.width=w+'px';
-                            return true;
-                          };
-                          if(!grow()){ const t=setInterval(()=>{ if(grow()) clearInterval(t); },250); }
-                          p.document.addEventListener('input', grow, true);
-                        })();
-                        </script>
-                        """, height=0, width=0)
+                        pass
                     st.markdown("---")
                     st.stop()
                 pending_cells = st.session_state.get("fe_pending_cells")
