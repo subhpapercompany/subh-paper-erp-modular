@@ -1627,49 +1627,32 @@ def render():
                                 unsafe_allow_html=True,
                             )
                     with _lcol:
-                        st.markdown(
-                            "<div class='fe-sale-plabel fe-lglabel' style='margin-top:4px;'>Create Ledger</div>",
-                            unsafe_allow_html=True,
-                        )
-                        with st.form("fe_sale_create_ledger", border=False):
-                            _crl, _crb = st.columns([3, 1.2], vertical_alignment="center")
-                            with _crl:
-                                _cn = st.text_input(
-                                    "Naya Ledger",
-                                    key="fe_sale_new_ledger",
-                                    label_visibility="collapsed",
-                                    placeholder="naya ledger type karein...",
+                        def _fe_save_new_ledger_nb():
+                            _nm = (st.session_state.get("fe_sale_new_ledger") or "").strip()
+                            if not _nm:
+                                return
+                            _nc = get_db_connection()
+                            try:
+                                if _nc.execute("SELECT 1 FROM ledger_master WHERE LOWER(ledger_name) = LOWER(?)", (_nm,)).fetchone():
+                                    return
+                                _nc.execute(
+                                    "INSERT INTO ledger_master (ledger_name, group_name, opening_balance) VALUES (?,?,0)",
+                                    (_nm, "Current Assets"),
                                 )
-                            with _crb:
-                                _sub = st.form_submit_button("➕", use_container_width=True, help="Ledger save karein")
-                            _grps = [r[0] for r in conn.execute(
-                                "SELECT group_name FROM account_group_master ORDER BY group_name"
-                            ).fetchall()] or ["Default"]
-                            _cg = st.selectbox(
-                                "Group",
-                                _grps,
-                                index=_grps.index("Current Assets") if "Current Assets" in _grps else 0,
-                                key="fe_sale_new_group",
-                                label_visibility="collapsed",
-                            )
-                            if _sub:
-                                _clean = (_cn or "").strip()
-                                if not _clean:
-                                    st.error("Ledger name required.")
-                                elif conn.execute("SELECT 1 FROM ledger_master WHERE LOWER(ledger_name) = LOWER(?)", (_clean,)).fetchone():
-                                    st.error(f"Ledger '{_clean}' already exists.")
-                                else:
-                                    conn.execute(
-                                        "INSERT INTO ledger_master (ledger_name, group_name, opening_balance) VALUES (?,?,0)",
-                                        (_clean, _cg),
-                                    )
-                                    conn.commit()
-                                    st.session_state.pop("fe_sale_new_ledger", None)
-                                    if _sel_party and not _sel_sales:
-                                        st.session_state["fe_sale_selected_salesledger"] = _clean
-                                    else:
-                                        st.session_state["fe_sale_selected_party"] = _clean
-                                    st.rerun()
+                                _nc.commit()
+                            finally:
+                                _nc.close()
+                            if st.session_state.get("fe_sale_selected_party") and not st.session_state.get("fe_sale_selected_salesledger"):
+                                st.session_state["fe_sale_selected_salesledger"] = _nm
+                            else:
+                                st.session_state["fe_sale_selected_party"] = _nm
+                        st.text_input(
+                            "Naya Ledger",
+                            key="fe_sale_new_ledger",
+                            label_visibility="collapsed",
+                            placeholder="naya ledger type karein...",
+                            on_change=_fe_save_new_ledger_nb,
+                        )
                         st.components.v1.html("""
                         <script>
                         (()=>{
