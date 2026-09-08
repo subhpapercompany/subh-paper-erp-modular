@@ -1589,8 +1589,8 @@ def render():
                             ).fetchone()[0]
                             _bal_cur = float(_bal_open or 0) + float(_bal_dr or 0) - float(_bal_cr or 0)
                             st.markdown(
-                                f"<div class='fe-sale-plabel' style='margin-top:10px;'>Current Balance :"
-                                f"<span class='fe-sale-cbalance'> {abs(_bal_cur):,.2f} Dr</span></div>",
+                                f"<div class='fe-sale-plabel' style='margin-top:5px;font-size:12px;font-weight:400;'>Current Balance :"
+                                f"<span class='fe-sale-cbalance' style='font-size:12px;font-weight:400;'> {abs(_bal_cur):,.2f} Dr</span></div>",
                                 unsafe_allow_html=True,
                             )
                         _sl_l, _sl_f = st.columns([0.9, 5.0], vertical_alignment="center")
@@ -1629,8 +1629,8 @@ def render():
                             ).fetchone()[0]
                             _sb_cur = float(_sb_open or 0) + float(_sb_dr or 0) - float(_sb_cr or 0)
                             st.markdown(
-                                f"<div class='fe-sale-plabel' style='margin-top:10px;'>Current Balance :"
-                                f"<span class='fe-sale-cbalance' style='color:#15803d;'> {abs(_sb_cur):,.2f} Cr</span></div>",
+                                f"<div class='fe-sale-plabel' style='margin-top:5px;font-size:12px;font-weight:400;'>Current Balance :"
+                                f"<span class='fe-sale-cbalance' style='color:#15803d;font-size:12px;font-weight:400;'> {abs(_sb_cur):,.2f} Cr</span></div>",
                                 unsafe_allow_html=True,
                             )
                     st.markdown("---")
