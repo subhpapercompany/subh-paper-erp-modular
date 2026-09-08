@@ -1561,6 +1561,7 @@ def render():
                                 index=None,
                                 key="fe_sale_party_pick",
                                 placeholder="Type karke ledger chunein...",
+                                label_visibility="collapsed",
                             )
                             if _chose:
                                 st.session_state["fe_sale_selected_party"] = _chose
@@ -1600,6 +1601,7 @@ def render():
                                 index=None,
                                 key="fe_sale_sales_pick",
                                 placeholder="Type karke ledger chunein...",
+                                label_visibility="collapsed",
                             )
                             if _chose_sl:
                                 st.session_state["fe_sale_selected_salesledger"] = _chose_sl
