@@ -185,6 +185,23 @@ def render():
         font-weight: 700 !important;
         font-size: 14px;
     }
+
+    /* Compact Save/Load/Delete action bar (1"–1.5" widgets). */
+    div[data-testid="stColumn"] button[data-testid="stBaseButton-secondary"],
+    div[data-testid="stColumn"] button[kind="primary"] {
+        height: 30px;
+        min-height: 30px !important;
+        padding: 0 10px !important;
+        font-size: 12px !important;
+        border-radius: 5px !important;
+    }
+    div[data-testid="stColumn"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+        min-height: 30px !important;
+        height: 30px !important;
+    }
+    div[data-testid="stColumn"] [data-testid="stSelectbox"] input {
+        font-size: 12px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     render_financial_year_control()
@@ -1581,7 +1598,9 @@ def render():
                         _sale_next_no = (max(_sale_int) + 1) if _sale_int else 1
                     except Exception:
                         _sale_next_no = 1
-                    _sale_editing_no = st.session_state.get("fe_sale_editing_no")
+                    _sale_tok = int(st.session_state.get("fe_sale_form_tok", 0))
+                    _sale_pk = f"fe_sale_{_sale_tok}"
+                    _sale_editing_no = st.session_state.get(f"{_sale_pk}_editing_no")
                     _sale_display_no = _sale_editing_no if _sale_editing_no else _sale_next_no
                     _flash_msg = st.session_state.pop("fe_flash", None)
                     if _flash_msg:
@@ -1599,22 +1618,24 @@ def render():
                         _pd_date = _pending_load.get("date")
                         _pd_items = _pending_load.get("items") or []
                         if _pd_party:
-                            st.session_state["fe_sale_party_pick"] = _pd_party
-                            st.session_state["fe_sale_selected_party"] = _pd_party
+                            st.session_state[f"{_sale_pk}_party_pick"] = _pd_party
+                            st.session_state[f"{_sale_pk}_selected_party"] = _pd_party
                         if _pd_sales:
-                            st.session_state["fe_sale_sales_pick"] = _pd_sales
-                            st.session_state["fe_sale_selected_salesledger"] = _pd_sales
+                            st.session_state[f"{_sale_pk}_sales_pick"] = _pd_sales
+                            st.session_state[f"{_sale_pk}_selected_salesledger"] = _pd_sales
                         if _pd_date:
-                            st.session_state["fe_sale_date"] = _pd_date
-                        st.session_state["fe_sale_item_count"] = max(1, len(_pd_items))
+                            st.session_state[f"{_sale_pk}_date"] = _pd_date
+                        st.session_state[f"{_sale_pk}_item_count"] = max(1, len(_pd_items))
+                        _pd_round = _pending_load.get("round_off", 0.0)
+                        st.session_state[f"{_sale_pk}_round_off"] = float(_pd_round or 0)
                         for _pi, (it, qq, rr) in enumerate(_pd_items):
-                            st.session_state[f"fe_sale_item_{_pi}"] = str(it)
-                            st.session_state[f"fe_sale_lastitem_{_pi}"] = str(it)
-                            st.session_state[f"fe_sale_qty_{_pi}"] = float(qq or 0)
-                            st.session_state[f"fe_sale_rate_{_pi}"] = float(rr or 0)
+                            st.session_state[f"{_sale_pk}_item_{_pi}"] = str(it)
+                            st.session_state[f"{_sale_pk}_lastitem_{_pi}"] = str(it)
+                            st.session_state[f"{_sale_pk}_qty_{_pi}"] = float(qq or 0)
+                            st.session_state[f"{_sale_pk}_rate_{_pi}"] = float(rr or 0)
                         _pd_vno = _pending_load.get("voucher_no")
                         if _pd_vno:
-                            st.session_state["fe_sale_editing_no"] = _pd_vno
+                            st.session_state[f"{_sale_pk}_editing_no"] = _pd_vno
                         st.session_state["fe_flash"] = f"Voucher #{_pd_vno} load ho gaya — ab edit karke Save dabayein."
                         st.session_state.pop("fe_sale_pending_load", None)
                         st.rerun()
@@ -1634,12 +1655,12 @@ def render():
                                 unsafe_allow_html=True
                             )
                     with cr:
-                        _sale_def_date = st.session_state.get("fe_sale_date") or datetime.date.today()
+                        _sale_def_date = st.session_state.get(f"{_sale_pk}_date") or datetime.date.today()
                         _sale_dt = st.date_input(
                             "Sale Date (F2)",
                             value=_sale_def_date,
                             format="DD/MM/YYYY",
-                            key="fe_sale_date",
+                            key=f"{_sale_pk}_date",
                         )
                         _sale_months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
                         _sale_disp = f"{_sale_dt.day:02d}-{_sale_months[_sale_dt.month-1]}-{_sale_dt.year}"
@@ -1696,8 +1717,8 @@ def render():
                     """, height=0, width=0)
                     st.markdown("<div style='border-top:1px solid #d1d5db; margin:6px 0 6px 0;'></div>", unsafe_allow_html=True)
                     # ---- PARTY A/c NAME + SALES LEDGER (TALLY STYLE) ----
-                    _sel_party = st.session_state.get("fe_sale_selected_party")
-                    _sel_sales = st.session_state.get("fe_sale_selected_salesledger")
+                    _sel_party = st.session_state.get(f"{_sale_pk}_selected_party")
+                    _sel_sales = st.session_state.get(f"{_sale_pk}_selected_salesledger")
                     _st_code_map = {
                         "01": "Jammu and Kashmir", "02": "Himachal Pradesh", "03": "Punjab", "04": "Chandigarh",
                         "05": "Uttarakhand", "06": "Haryana", "07": "Delhi", "08": "Rajasthan", "09": "Uttar Pradesh",
@@ -1772,20 +1793,20 @@ def render():
                         return meta
 
                     def _sale_net_from_state():
-                        _n = max(1, int(st.session_state.get("fe_sale_item_count", 1)))
+                        _n = max(1, int(st.session_state.get(f"{_sale_pk}_item_count", 1)))
                         _tot = 0.0
                         _grps = {}
                         for _i in range(_n):
-                            _nm = st.session_state.get(f"fe_sale_item_{_i}")
+                            _nm = st.session_state.get(f"{_sale_pk}_item_{_i}")
                             if not _nm:
                                 continue
                             _meta = _sale_item_meta(_nm)
-                            _ql = float(st.session_state.get(f"fe_sale_qty_{_i}", 0.0) or 0.0)
-                            _pr = st.session_state.get(f"fe_sale_lastitem_{_i}")
+                            _ql = float(st.session_state.get(f"{_sale_pk}_qty_{_i}", 0.0) or 0.0)
+                            _pr = st.session_state.get(f"{_sale_pk}_lastitem_{_i}")
                             if _nm != _pr:
                                 _rt = float(_meta["rate"] or 0)
                             else:
-                                _rt = float(st.session_state.get(f"fe_sale_rate_{_i}", _meta["rate"]) or _meta["rate"] or 0)
+                                _rt = float(st.session_state.get(f"{_sale_pk}_rate_{_i}", _meta["rate"]) or _meta["rate"] or 0)
                             _am = round(_ql * _rt, 2)
                             _tot += _am
                             try:
@@ -1835,12 +1856,12 @@ def render():
                                 "Party Ledger chunein:",
                                 _all_ledgers,
                                 index=None,
-                                key="fe_sale_party_pick",
+                                key=f"{_sale_pk}_party_pick",
                                 placeholder="Type karke ledger chunein...",
                                 label_visibility="collapsed",
                             )
                             if _chose:
-                                st.session_state["fe_sale_selected_party"] = _chose
+                                st.session_state[f"{_sale_pk}_selected_party"] = _chose
                                 _sel_party = _chose
                             if _sel_party:
                                 _bal_open = conn.execute(
@@ -1849,12 +1870,12 @@ def render():
                                     (_sel_party,),
                                 ).fetchone()[0]
                                 _bal_dr = conn.execute(
-                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "SELECT COALESCE(SUM(COALESCE(net_amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
                                     "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
                                     (_sel_party,),
                                 ).fetchone()[0]
                                 _bal_cr = conn.execute(
-                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "SELECT COALESCE(SUM(COALESCE(net_amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
                                     "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
                                     (_sel_party,),
                                 ).fetchone()[0]
@@ -1882,12 +1903,12 @@ def render():
                                 "Sales Ledger chunein:",
                                 _all_sl,
                                 index=None,
-                                key="fe_sale_sales_pick",
+                                key=f"{_sale_pk}_sales_pick",
                                 placeholder="Type karke ledger chunein...",
                                 label_visibility="collapsed",
                             )
                             if _chose_sl:
-                                st.session_state["fe_sale_selected_salesledger"] = _chose_sl
+                                st.session_state[f"{_sale_pk}_selected_salesledger"] = _chose_sl
                                 _sel_sales = _chose_sl
                             if _sel_sales:
                                 _sb_open = conn.execute(
@@ -1896,12 +1917,12 @@ def render():
                                     (_sel_sales,),
                                 ).fetchone()[0]
                                 _sb_dr = conn.execute(
-                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "SELECT COALESCE(SUM(COALESCE(net_amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
                                     "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'DR'",
                                     (_sel_sales,),
                                 ).fetchone()[0]
                                 _sb_cr = conn.execute(
-                                    "SELECT COALESCE(SUM(COALESCE(amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
+                                    "SELECT COALESCE(SUM(COALESCE(net_amount,0) - COALESCE(tds,0)),0) FROM voucher_entries "
                                     "WHERE LOWER(TRIM(ledger_head)) = LOWER(?) AND UPPER(TRIM(dr_cr)) = 'CR'",
                                     (_sel_sales,),
                                 ).fetchone()[0]
@@ -1923,40 +1944,40 @@ def render():
                         unsafe_allow_html=True,
                     )
                     # ---- SALE ITEMS GRID ----
-                    sale_item_count = max(1, int(st.session_state.get("fe_sale_item_count", 1)))
+                    sale_item_count = max(1, int(st.session_state.get(f"{_sale_pk}_item_count", 1)))
                     _sale_item_opts = _sale_item_options()
                     sale_item_rows = []
                     _sale_item_total = 0.0
                     for _si in range(sale_item_count):
-                        _prev_item = st.session_state.get(f"fe_sale_lastitem_{_si}")
+                        _prev_item = st.session_state.get(f"{_sale_pk}_lastitem_{_si}")
                         _ic = st.columns([55, 11, 6, 9, 11, 8], vertical_alignment="center")
                         with _ic[0]:
                             _isd, _iss = st.columns([0.5, 6.5], vertical_alignment="center")
-                            _del_item = _isd.button("🗑", key=f"fe_sale_item_del_{_si}", help="Row delete karein")
+                            _del_item = _isd.button("🗑", key=f"{_sale_pk}_item_del_{_si}", help="Row delete karein")
                             with _iss:
                                 _itm = st.selectbox(
                                     "Particulars", _sale_item_opts, index=(_sale_item_opts.index(_prev_item) if _prev_item in _sale_item_opts else None),
-                                    key=f"fe_sale_item_{_si}", placeholder="Item chunein...",
+                                    key=f"{_sale_pk}_item_{_si}", placeholder="Item chunein...",
                                     label_visibility="collapsed")
                         if _itm != _prev_item:
                             if _itm:
                                 _new_meta = _sale_item_meta(_itm)
-                                st.session_state[f"fe_sale_lastitem_{_si}"] = _itm
-                                st.session_state[f"fe_sale_rate_{_si}"] = _new_meta["rate"]
-                                st.session_state[f"fe_sale_qty_{_si}"] = 0.0
+                                st.session_state[f"{_sale_pk}_lastitem_{_si}"] = _itm
+                                st.session_state[f"{_sale_pk}_rate_{_si}"] = _new_meta["rate"]
+                                st.session_state[f"{_sale_pk}_qty_{_si}"] = 0.0
                             else:
-                                st.session_state[f"fe_sale_lastitem_{_si}"] = None
+                                st.session_state[f"{_sale_pk}_lastitem_{_si}"] = None
                         _im = _sale_item_meta(_itm) if _itm else {"name": "", "hsn": "", "tax": "", "rate": 0.0, "unit": ""}
                         with _ic[1]:
                             st.markdown(f"<div class='fe-item-fld' style='padding-top:6px;'>{html.escape(_im['hsn'])}</div>", unsafe_allow_html=True)
                         with _ic[2]:
                             st.markdown(f"<div class='fe-item-fld' style='padding-top:6px;'>{html.escape(_im['tax'])}</div>", unsafe_allow_html=True)
                         with _ic[3]:
-                            _sqty = st.number_input("Qty", min_value=0.0, step=1.0, value=float(st.session_state.get(f"fe_sale_qty_{_si}", 0.0)),
-                                                    format="%.2f", key=f"fe_sale_qty_{_si}", label_visibility="collapsed")
+                            _sqty = st.number_input("Qty", min_value=0.0, step=1.0, value=float(st.session_state.get(f"{_sale_pk}_qty_{_si}", 0.0)),
+                                                    format="%.2f", key=f"{_sale_pk}_qty_{_si}", label_visibility="collapsed")
                         with _ic[4]:
-                            _srt = st.number_input("Rate", min_value=0.0, step=0.01, value=float(st.session_state.get(f"fe_sale_rate_{_si}", _im["rate"])),
-                                                   format="%.2f", key=f"fe_sale_rate_{_si}", label_visibility="collapsed")
+                            _srt = st.number_input("Rate", min_value=0.0, step=0.01, value=float(st.session_state.get(f"{_sale_pk}_rate_{_si}", _im["rate"])),
+                                                   format="%.2f", key=f"{_sale_pk}_rate_{_si}", label_visibility="collapsed")
                         _qtr = float(_sqty or 0)
                         _amt = round(_qtr * float(_srt or 0), 2)
                         with _ic[5]:
@@ -1973,22 +1994,22 @@ def render():
                                 _to = _fj
                                 _fr = _fj + 1
                                 for _fld in ("item", "qty", "rate"):
-                                    _sk = f"fe_sale_{_fld}_{_fr}"
-                                    _dk = f"fe_sale_{_fld}_{_to}"
+                                    _sk = f"{_sale_pk}_{_fld}_{_fr}"
+                                    _dk = f"{_sale_pk}_{_fld}_{_to}"
                                     if _sk in st.session_state:
                                         st.session_state[_dk] = st.session_state[_sk]
-                                _sk = f"fe_sale_lastitem_{_fr}"
-                                _dk = f"fe_sale_lastitem_{_to}"
+                                _sk = f"{_sale_pk}_lastitem_{_fr}"
+                                _dk = f"{_sale_pk}_lastitem_{_to}"
                                 if _sk in st.session_state:
                                     st.session_state[_dk] = st.session_state[_sk]
                             for _fld in ("item", "qty", "rate"):
-                                st.session_state.pop(f"fe_sale_{_fld}_{_cur - 1}", None)
-                            st.session_state.pop(f"fe_sale_lastitem_{_cur - 1}", None)
-                            st.session_state["fe_sale_item_count"] = _cur - 1
+                                st.session_state.pop(f"{_sale_pk}_{_fld}_{_cur - 1}", None)
+                            st.session_state.pop(f"{_sale_pk}_lastitem_{_cur - 1}", None)
+                            st.session_state[f"{_sale_pk}_item_count"] = _cur - 1
                             st.rerun()
                     _icb = st.columns([0.5, 4.5])
-                    if _icb[0].button("＋ Item", key="fe_sale_item_add"):
-                        st.session_state["fe_sale_item_count"] = sale_item_count + 1
+                    if _icb[0].button("＋ Item", key=f"{_sale_pk}_item_add"):
+                        st.session_state[f"{_sale_pk}_item_count"] = sale_item_count + 1
                         st.rerun()
                     _tax_groups = {}
                     for _row in sale_item_rows:
@@ -2017,16 +2038,31 @@ def render():
                                 f"<span class='fe-sum-amt'>₹ {_gst_amt:,.2f}</span></div>"
                             )
                     _net_amt = round(_sale_item_total + _gst_total, 2)
+                    _adj_row = st.columns([0.5, 2.4, 2.6])
+                    with _adj_row[1]:
+                        _round_off_val = st.number_input(
+                            "Round Off (₹)", min_value=0.0,
+                            value=float(st.session_state.get(f"{_sale_pk}_round_off", 0.0) or 0.0),
+                            step=0.01, format="%.2f", key=f"{_sale_pk}_round_off")
+                    _net_final = round(_net_amt + float(_round_off_val or 0), 2)
+                    _round_diff = round(_net_final - _net_amt, 2)
+                    _round_line = ""
+                    if _round_diff != 0:
+                        _round_line = (
+                            f"<div class='fe-sum-row'><span>Round Off {'(+)' if _round_diff > 0 else '(−)'}"
+                            f"</span><span class='fe-sum-amt'>₹ {abs(_round_diff):,.2f}</span></div>"
+                        )
                     _icb[1].markdown(
                         f"<div class='fe-summary'>"
                         f"<div class='fe-sum-row'><span>Total</span><span class='fe-sum-amt'>₹ {_sale_item_total:,.2f}</span></div>"
                         f"{_gst_lines}"
-                        f"<div class='fe-sum-row fe-sum-total'><span>Net Amount</span><span class='fe-sum-amt'>₹ {_net_amt:,.2f}</span></div>"
+                        f"{_round_line}"
+                        f"<div class='fe-sum-row fe-sum-total'><span>Net Amount</span><span class='fe-sum-amt'>₹ {_net_final:,.2f}</span></div>"
                         f"</div>",
                         unsafe_allow_html=True,
                     )
                     # ---- SALE SAVE / EDIT / DELETE ----
-                    _sale_editing_no = st.session_state.get("fe_sale_editing_no")
+                    _sale_editing_no = st.session_state.get(f"{_sale_pk}_editing_no")
                     _sale_existing = []
                     try:
                         _sale_existing = [str(r[0]) for r in conn.execute(
@@ -2035,19 +2071,31 @@ def render():
                         ).fetchall()]
                     except Exception:
                         pass
-                    _saved_row = st.columns([2.0, 3.0], vertical_alignment="center")
-                    with _saved_row[0]:
+                    _act = st.columns([1.15, 0.55, 0.65, 1.4, 0.65, 1.1], vertical_alignment="center")
+                    with _act[0]:
                         _edit_pick = st.selectbox(
                             "Edit / Load Saved Voucher:", [""] + _sale_existing,
                             index=(_sale_existing.index(_sale_editing_no) + 1) if _sale_editing_no in _sale_existing else 0,
-                            key="fe_sale_pick_existing", label_visibility="visible",
-                            format_func=lambda x: (f"Voucher #{x}" if x else "— Naya Voucher —"))
-                    with _saved_row[1]:
+                            key=f"{_sale_pk}_pick_existing", label_visibility="collapsed",
+                            placeholder="Pick Voucher #...")
+                    with _act[1]:
                         _load_clicked = st.button("↩ Load", key="fe_sale_load_voucher", use_container_width=True,
                                                   help="Saved voucher ko form me load karein (Edit)")
+                    with _act[2]:
                         _del_existing_clicked = st.button("🗑 Delete", key="fe_sale_del_existing",
                                                           use_container_width=True, disabled=(not _sale_editing_no),
                                                           help="Current loaded voucher delete karein")
+                    with _act[3]:
+                        _sale_save_clicked = st.button("💾 Save Voucher (F11)", type="primary",
+                                                       use_container_width=True, key="fe_sale_save_voucher")
+                    with _act[4]:
+                        _sale_clear_clicked = st.button("🧹 Clear", use_container_width=True, key="fe_sale_clear")
+                    with _act[5]:
+                        if _sale_editing_no:
+                            st.markdown(
+                                f"<div class='fe-sale-editing-badge'>✏️ Editing #{html.escape(_sale_editing_no)}</div>",
+                                unsafe_allow_html=True
+                            )
                     if _load_clicked and _edit_pick:
                         _ln = str(_edit_pick)
                         _lrows = conn.execute(
@@ -2073,9 +2121,14 @@ def render():
                             "SELECT item_name, qty, rate FROM voucher_inventory_items "
                             "WHERE mode='Sale' AND voucher_no=? ORDER BY id ASC", (_ln,)
                         ).fetchall()
+                        _lround = next(
+                            ((-1.0 if str(r[0]).upper() == "DR" else 1.0) * float(r[2] or 0))
+                            for r in _lrows if str(r[1]).strip() == "Rounding Off"
+                        ) if any(str(r[1]).strip() == "Rounding Off" for r in _lrows) else 0.0
                         st.session_state["fe_sale_pending_load"] = {
                             "party": _lparty, "sales": _lsales, "date": _ldate,
                             "items": [(r[0], r[1], r[2]) for r in _litems],
+                            "round_off": float(_lround or 0),
                             "voucher_no": _ln,
                         }
                         st.rerun()
@@ -2093,24 +2146,11 @@ def render():
                         conn.execute("DELETE FROM voucher_inventory_items WHERE mode='Sale' AND voucher_no=?", (_dno,))
                         conn.execute("DELETE FROM voucher_entries WHERE mode='Sale' AND invoice_no=?", (_dno,))
                         conn.commit()
-                        for key in ("fe_sale_editing_no", "fe_sale_pick_existing"):
-                            st.session_state.pop(key, None)
+                        st.session_state["fe_sale_form_tok"] = _sale_tok + 1
                         st.session_state["fe_flash"] = f"Sale Voucher #{_dno} delete ho gaya."
                         st.rerun()
-                    _action_row = st.columns([2.0, 1.0, 1.0])
-                    _sale_save_clicked = _action_row[0].button("💾 Save Sale Voucher (F11)", type="primary",
-                                                               use_container_width=True, key="fe_sale_save_voucher")
-                    _sale_clear_clicked = _action_row[1].button("🧹 Clear (F6)", use_container_width=True, key="fe_sale_clear")
-                    if _sale_editing_no:
-                        _action_row[2].markdown(
-                            f"<div class='fe-sale-editing-badge'>✏️ Editing Voucher #{html.escape(_sale_editing_no)}</div>",
-                            unsafe_allow_html=True
-                        )
                     if _sale_clear_clicked:
-                        for key in list(st.session_state.keys()):
-                            if str(key).startswith("fe_sale_") or str(key) in ("fe_pick_existing",):
-                                st.session_state.pop(key, None)
-                        st.session_state["fe_sale_item_count"] = 1
+                        st.session_state["fe_sale_form_tok"] = _sale_tok + 1
                         st.rerun()
                     if _sale_save_clicked:
                         _valid_items = []
@@ -2148,7 +2188,7 @@ def render():
                                  invoice_amount, tds, net_amount, remarks, bill_ref)
                                 VALUES (?,?,?,?,?,?,?,?,?,?)""",
                                 ("Sale", _sale_date_str, _vno, "Dr", _sel_party,
-                                 _net_amt, 0.0, _net_amt, _remarks_val, "SaleParty")
+                                 _net_final, 0.0, _net_final, _remarks_val, "SaleParty")
                             )
                             conn.execute(
                                 """INSERT INTO voucher_entries
@@ -2191,6 +2231,16 @@ def render():
                                         ("Sale", _sale_date_str, _vno, "Cr", "SGST GST Output",
                                          _sgst_amt, 0.0, _sgst_amt, _remarks_val, "SaleGST")
                                     )
+                            if _round_diff != 0:
+                                _rd_drcr = "Cr" if _round_diff > 0 else "Dr"
+                                conn.execute(
+                                    """INSERT INTO voucher_entries
+                                    (mode, entry_date, invoice_no, dr_cr, ledger_head,
+                                     invoice_amount, tds, net_amount, remarks, bill_ref)
+                                    VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                                    ("Sale", _sale_date_str, _vno, _rd_drcr, "Rounding Off",
+                                     abs(_round_diff), 0.0, abs(_round_diff), _remarks_val, "SaleGST")
+                                )
                             for _row in _valid_items:
                                 _uv = _row[1].get("unit") if _row[1] else ""
                                 conn.execute(
@@ -2204,9 +2254,9 @@ def render():
                                     (float(_row[2] or 0), _row[0])
                                 )
                             conn.commit()
-                            st.session_state["fe_sale_editing_no"] = _vno
+                            st.session_state["fe_sale_form_tok"] = _sale_tok + 1
                             st.session_state["fe_flash"] = (
-                                f"Sale Voucher #{_vno} {'updated' if _sale_editing_no else 'saved'} successfully."
+                                f"Sale Voucher #{_vno} {'updated' if _sale_editing_no else 'saved'} successfully — form clear ho gaya."
                             )
                             st.rerun()
                     st.markdown("---")
