@@ -13,7 +13,7 @@ def render():
     st.markdown("<h2 class='section-header'>📊 Production Statement</h2>", unsafe_allow_html=True)
     render_financial_year_control()
     
-    conn = get_db_connection()
+    conn = get_db_connection(private=True)
     
     report_table = st.selectbox("Select Production Report", [
         "Purchase Orders", "PO Requests", "PO Released", "Production Report",

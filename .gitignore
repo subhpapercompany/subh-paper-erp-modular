@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 
+# Secrets
+.env
+
 # Database files (live business data - never commit)
 *.db
 *.db-journal

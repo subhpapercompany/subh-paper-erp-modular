@@ -138,15 +138,68 @@ def get_month_year_options():
 # ==============================================================================
 # DATABASE FUNCTIONS
 # ==============================================================================
-def get_db_connection():
+def _read_env_file():
+    """Read KEY=VALUE pairs from the .env file next to this module."""
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    values = {}
+    if os.path.isfile(env_path):
+        try:
+            with open(env_path, encoding="utf-8") as _fh:
+                for _line in _fh:
+                    _line = _line.strip()
+                    if not _line or _line.startswith("#") or "=" not in _line:
+                        continue
+                    _k, _, _v = _line.partition("=")
+                    values[_k.strip()] = _v.strip().strip('"').strip("'")
+        except Exception:
+            pass
+    return values
+
+def _turso_credentials():
+    env = _read_env_file()
+    url = os.environ.get("TURSO_URL") or env.get("TURSO_URL")
+    token = os.environ.get("TURSO_AUTH_TOKEN") or env.get("TURSO_AUTH_TOKEN")
+    return url, token
+
+def get_db_connection(private=False):
+    """Open a database connection.
+
+    If Turso credentials are present (env vars or .env), connect to the Turso
+    cloud database so everyone sees the same data. Otherwise fall back to the
+    local SQLite file (used for development / offline).
+
+    private=True returns a fresh connection the caller owns and MUST close.
+    private=False returns a session-cached connection that is reused across
+    reruns and must NEVER be closed by the caller (it is process/session-owned).
+    """
+    url, token = _turso_credentials()
+    if url and token:
+        try:
+            import libsql
+            if private:
+                return libsql.connect(url, auth_token=token, autocommit=True, timeout=30)
+            # Reuse one connection per Streamlit session: har rerun me naya
+            # handshake/connection banane se reruns bhut slow hote hain aur
+            # click events race/lost ho jate hain. autocommit=True har statement
+            # ko apne txn me rakhta hai, is liye idle session pe SQLITE_BUSY nahi aata.
+            try:
+                conn = st.session_state.get("_turso_conn")
+            except Exception:
+                conn = None
+            if conn is None:
+                conn = libsql.connect(url, auth_token=token, autocommit=True, timeout=30)
+                try:
+                    st.session_state["_turso_conn"] = conn
+                except Exception:
+                    pass
+            return conn
+        except Exception:
+            pass
     return sqlite3.connect(DB_NAME)
 
-def get_consumable_cf_item_options(conn):
-    """Return one common Item List for CF Entry and CF Reports.
-
-    The list contains Product Codes from case.xlsx Sheet3 with " CFC" appended,
-    plus any manually created/saved item names from consumable_cf_entries.
-    """
+@st.cache_data(ttl=8, show_spinner=False)
+def _cf_item_options_cached():
+    """CF item list (Excel Sheet3 codes + saved consumable entries), cached."""
     items = []
 
     # Product-code based CFC items from the master Excel file.
@@ -173,19 +226,29 @@ def get_consumable_cf_item_options(conn):
     # Manually created items are kept in the database and remain available
     # in both Entry Mode and Reporting Mode.
     try:
-        rows = conn.execute(
-            "SELECT DISTINCT item_name FROM consumable_cf_entries "
-            "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' "
-            "ORDER BY item_name"
-        ).fetchall()
-        for row in rows:
-            item_name = str(row[0]).strip()
-            if item_name and item_name not in items:
-                items.append(item_name)
+        _c = get_db_connection(private=True)
+        try:
+            rows = _c.execute(
+                "SELECT DISTINCT item_name FROM consumable_cf_entries "
+                "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' "
+                "ORDER BY item_name"
+            ).fetchall()
+            for _row in rows:
+                item_name = str(_row[0]).strip()
+                if item_name and item_name not in items:
+                    items.append(item_name)
+        finally:
+            try:
+                _c.close()
+            except Exception:
+                pass
     except Exception:
         pass
 
     return items
+
+def get_consumable_cf_item_options(conn):
+    return _cf_item_options_cached()
 
 def fetch_case_mrp(product_code):
     """Return the Revised MRP from case.xlsx (Sheet3) for the matching product code."""

@@ -13,7 +13,7 @@ def render():
     st.markdown("<h2 class='section-header'>👥 HR Module</h2>", unsafe_allow_html=True)
     render_financial_year_control()
 
-    hr_conn = get_db_connection()
+    hr_conn = get_db_connection(private=True)
 
     # Employee Master schema
     hr_conn.execute("""

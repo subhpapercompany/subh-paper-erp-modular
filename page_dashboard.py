@@ -9,20 +9,52 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 from shared_helpers import *
+
+@st.cache_data(ttl=12, show_spinner=False)
+def _load_dash_data():
+    """Load all dashboard aggregates in one cached call.
+
+    Turso par har query network round-trip hai, isliye poori dashboard data
+    load 12s TTL ke saath cache karte hain.
+    """
+    _conn = get_db_connection(private=True)
+    try:
+        t_ord = float(pd.read_sql_query("SELECT SUM(CAST(order_qty AS REAL)) FROM order_entries", _conn).iloc[0, 0] or 0)
+        t_prod = float(pd.read_sql_query("SELECT SUM(CAST(ok_notebook AS REAL)) FROM production_form_entries", _conn).iloc[0, 0] or 0)
+        t_desp = float(pd.read_sql_query("SELECT SUM(CAST(despatch_qty AS REAL)) FROM despatch_form_entries", _conn).iloc[0, 0] or 0)
+        paper_status = _dashboard_paper_status(_conn)
+        board_sizes, board_balances, board_wip_balances = _dashboard_board_status(_conn)
+        order_status = _dashboard_order_status(_conn)
+        cf = pd.read_sql_query(
+            "SELECT id, item_name, in_out, quantity, min_label FROM consumable_cf_entries ORDER BY id", _conn
+        )
+        return t_ord, t_prod, t_desp, paper_status, board_sizes, board_balances, board_wip_balances, order_status, cf
+    finally:
+        try:
+            _conn.close()
+        except Exception:
+            pass
+
+@st.cache_data(ttl=30, show_spinner=False)
+def _load_hr_counts():
+    _hr_conn = get_db_connection(private=True)
+    try:
+        wages = int(_hr_conn.execute("SELECT COUNT(*) FROM hr_employee_master WHERE category='Wages'").fetchone()[0])
+        payroll = int(_hr_conn.execute("SELECT COUNT(*) FROM hr_employee_master WHERE category='Payroll'").fetchone()[0])
+        return wages, payroll
+    except Exception:
+        return 0, 0
+    finally:
+        try:
+            _hr_conn.close()
+        except Exception:
+            pass
+
 def render():
     st.markdown("<h2 class='section-header dashboard-main-title'>📈 Real-time Corporate Executive Dashboard Summary</h2>", unsafe_allow_html=True)
     render_financial_year_control()
-    conn = get_db_connection()
     try:
-        # Existing dashboard totals are retained.
-        t_ord = pd.read_sql_query("SELECT SUM(CAST(order_qty AS REAL)) FROM order_entries", conn).iloc[0, 0] or 0
-        t_prod = pd.read_sql_query("SELECT SUM(CAST(ok_notebook AS REAL)) FROM production_form_entries", conn).iloc[0, 0] or 0
-        t_desp = pd.read_sql_query("SELECT SUM(CAST(despatch_qty AS REAL)) FROM despatch_form_entries", conn).iloc[0, 0] or 0
-
-        # Reporting-linked dashboard data.
-        paper_status = _dashboard_paper_status(conn)
-        board_sizes, board_balances, board_wip_balances = _dashboard_board_status(conn)
-        order_status = _dashboard_order_status(conn)
+        t_ord, t_prod, t_desp, paper_status, board_sizes, board_balances, board_wip_balances, order_status, cf = _load_dash_data()
 
         # Total Finished Storage (OK Volume) must use the exact totals shown
         # in ORDER, PRODUCTION AND DESPATCH STATUS:
@@ -73,16 +105,12 @@ def render():
         additional_board_required = max(0.0, est_board_req - board_total)
         # Consumable alert: count unique items whose current closing stock is below their latest Min. Label.
         consu_alert_count = 0
-        try:
-            cf = pd.read_sql_query("SELECT id, item_name, in_out, quantity, min_label FROM consumable_cf_entries ORDER BY id", conn)
-            if not cf.empty:
-                for item, g in cf.groupby("item_name"):
-                    closing = g.apply(lambda r: float(r["quantity"] or 0) if str(r["in_out"]).lower()=="in" else -float(r["quantity"] or 0), axis=1).sum()
-                    latest_min = float(g.iloc[-1]["min_label"] or 0)
-                    if latest_min > 0 and closing < latest_min:
-                        consu_alert_count += 1
-        except Exception:
-            consu_alert_count = 0
+        if cf is not None and not cf.empty:
+            for item, g in cf.groupby("item_name"):
+                closing = g.apply(lambda r: float(r["quantity"] or 0) if str(r["in_out"]).lower()=="in" else -float(r["quantity"] or 0), axis=1).sum()
+                latest_min = float(g.iloc[-1]["min_label"] or 0)
+                if latest_min > 0 and closing < latest_min:
+                    consu_alert_count += 1
         consu_alert = str(consu_alert_count)
     except Exception:
         t_ord, t_prod, t_desp = 0, 0, 0
@@ -96,8 +124,6 @@ def render():
         additional_paper_required = additional_board_required = 0.0
         consu_alert_count = 0
         consu_alert = "0"
-    finally:
-        conn.close()
 
     # Compact embossed KPI/status boxes.
     top_items = [
@@ -115,14 +141,7 @@ def render():
     ]
 
     # Wages/Payroll are linked to HR employee master when the HR tables exist.
-    hr_conn = get_db_connection()
-    try:
-        wages_count = int(hr_conn.execute("SELECT COUNT(*) FROM hr_employee_master WHERE category='Wages'").fetchone()[0])
-        payroll_count = int(hr_conn.execute("SELECT COUNT(*) FROM hr_employee_master WHERE category='Payroll'").fetchone()[0])
-    except Exception:
-        wages_count = payroll_count = 0
-    finally:
-        hr_conn.close()
+    wages_count, payroll_count = _load_hr_counts()
     top_items[1] = ("👥", "Wages", f"{wages_count}", "blue")
     top_items[2] = ("👥", "Payroll", f"{payroll_count}", "blue")
 

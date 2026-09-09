@@ -9,6 +9,119 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 from shared_helpers import *
+
+@st.cache_data(ttl=8, show_spinner=False)
+def _fetch_recent_entries_cached(table_name, limit=50):
+    """Cached read of the most recent rows for the crud panels.
+
+    Turso har query ko network round-trip banata hai, isliye bar-bar kheenchne
+    ki bajaye 8s TTL ke saath cache karte hain. Har save ke baad clear() ki
+    jati hai taaki nayi entry turant dikhe.
+    """
+    _conn = get_db_connection(private=True)
+    try:
+        _cols = [row[1] for row in _conn.execute(f"PRAGMA table_info({table_name})").fetchall()]
+        date_col = next((c for c in ("entry_date", "po_date", "production_date", "despatch_date") if c in _cols), None)
+        if date_col:
+            return _conn.execute(
+                f"SELECT * FROM {table_name} ORDER BY {date_col} ASC, id ASC LIMIT ?", (limit,)
+            ).fetchall()
+        return _conn.execute(f"SELECT * FROM {table_name} ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    finally:
+        try:
+            _conn.close()
+        except Exception:
+            pass
+
+@st.cache_data(ttl=8, show_spinner=False)
+def _sale_item_options_cached():
+    """Sale/Purchase item dropdown options (product codes + inventory/consumable items)."""
+    opts = []
+    _c = get_db_connection(private=True)
+    try:
+        try:
+            pcs = _c.execute(
+                "SELECT DISTINCT product_code FROM po_released_entries "
+                "WHERE product_code IS NOT NULL AND TRIM(product_code)<>''"
+            ).fetchall()
+            for (code,) in pcs:
+                code = str(code).strip()
+                if code and code not in opts:
+                    opts.append(code)
+        except Exception:
+            pass
+        try:
+            for (nm,) in _c.execute(
+                "SELECT item_name FROM inventory_item_master "
+                "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' ORDER BY item_name"
+            ).fetchall():
+                nm = str(nm).strip()
+                if nm and nm not in opts:
+                    opts.append(nm)
+        except Exception:
+            pass
+        try:
+            for (nm,) in _c.execute(
+                "SELECT item_name FROM consumable_item_master "
+                "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' ORDER BY item_name"
+            ).fetchall():
+                nm = str(nm).strip()
+                if nm and nm not in opts:
+                    opts.append(nm)
+        except Exception:
+            pass
+        try:
+            for (nm,) in _c.execute(
+                "SELECT DISTINCT item_name FROM consumable_cf_entries "
+                "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' ORDER BY item_name"
+            ).fetchall():
+                nm = str(nm).strip()
+                if nm and nm not in opts:
+                    opts.append(nm)
+        except Exception:
+            pass
+    finally:
+        try:
+            _c.close()
+        except Exception:
+            pass
+    return opts
+
+@st.cache_data(ttl=8, show_spinner=False)
+def _sale_item_meta_cached(name, order_month_str):
+    name = str(name or "").strip()
+    meta = {"name": name, "hsn": "", "tax": "", "rate": 0.0, "unit": ""}
+    _c = get_db_connection(private=True)
+    try:
+        inv_row = None
+        try:
+            inv_row = _c.execute(
+                "SELECT hsn_code, gst_rate, rate, unit FROM inventory_item_master "
+                "WHERE item_name = ? LIMIT 1",
+                (name,),
+            ).fetchone()
+        except Exception:
+            pass
+        if inv_row:
+            meta.update({"hsn": str(inv_row[0] or "").strip(), "tax": str(inv_row[1] or "18").strip(),
+                         "rate": float(inv_row[2] or 0), "unit": str(inv_row[3] or "").strip()})
+        try:
+            prow = _c.execute(
+                "SELECT po_rate FROM po_released_entries "
+                "WHERE product_code = ? AND order_month = ? ORDER BY id DESC LIMIT 1",
+                (name, order_month_str),
+            ).fetchone()
+        except Exception:
+            prow = None
+        if prow:
+            meta["rate"] = float(prow[0] or 0)
+    finally:
+        try:
+            _c.close()
+        except Exception:
+            pass
+    return meta
+
 def render():
     st.markdown("<h2 class='section-header'>📝 Production Line Multi-Module Data Entry Register</h2>", unsafe_allow_html=True)
     st.markdown("""
@@ -238,7 +351,7 @@ def render():
             key="entry_mode_selector"
         )
     month_options = sorted(get_month_year_options())
-    conn = get_db_connection()
+    conn = get_db_connection(private=True)
     
     def ensure_tables(conn):
         schemas = {
@@ -466,14 +579,16 @@ def render():
             },
         }
 
+        _existing_tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
         for table, columns in schemas.items():
-            conn.execute(f"CREATE TABLE IF NOT EXISTS {table} (id INTEGER PRIMARY KEY AUTOINCREMENT)")
-            existing = {
-                row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
-            }
-            for col, col_type in columns.items():
-                if col not in existing:
-                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}")
+            if table not in _existing_tables:
+                conn.execute(f"CREATE TABLE IF NOT EXISTS {table} (id INTEGER PRIMARY KEY AUTOINCREMENT)")
+                existing = {
+                    row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()
+                }
+                for col, col_type in columns.items():
+                    if col not in existing:
+                        conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}")
         for _drop_col in ("specification", "opening_balance"):
             _item_cols = {row[1] for row in conn.execute("PRAGMA table_info(inventory_item_master)").fetchall()}
             if _drop_col in _item_cols:
@@ -487,77 +602,76 @@ def render():
         conn.execute("UPDATE inventory_item_master SET type_of_supply = 'Goods' WHERE type_of_supply IS NULL")
         conn.commit()
 
-    ensure_tables(conn)
+    if not st.session_state.get("_entry_tables_ensured"):
+        ensure_tables(conn)
+        st.session_state["_entry_tables_ensured"] = True
 
-    # Default Ledgers
-    _default_ledgers = [
-        "Kukuyo Camlin Ltd.",
-        "Advance Account",
-        "Against Bill",
-        "TDS Deduction",
-        "Cash Account",
-        "Bank Account",
-        "Sale Account",
-        "Purchase Account",
-    ]
-    for _ledger_name in _default_ledgers:
-        conn.execute(
-            "INSERT INTO ledger_master (ledger_name) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM ledger_master WHERE ledger_name = ?)",
-            (_ledger_name, _ledger_name)
-        )
-    conn.commit()
-
-    # Master default groups
-    for _g in ("Paper", "Board", "Consumable"):
-        conn.execute(
-            "INSERT INTO inventory_group_master (group_name) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM inventory_group_master WHERE group_name = ?)",
-            (_g, _g),
-        )
-    for _g in ("Default", "Current Assets", "Bank/Cash", "Income", "Expenses", "Liabilities", "Capital"):
-        conn.execute(
-            "INSERT INTO account_group_master (group_name) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM account_group_master WHERE group_name = ?)",
-            (_g, _g),
-        )
-    conn.execute("UPDATE ledger_master SET group_name = 'Default' WHERE group_name IS NULL OR group_name = ''")
-    conn.commit()
-
-    # Voucher columns compatibility
-    voucher_columns = {row[1] for row in conn.execute("PRAGMA table_info(voucher_entries)").fetchall()}
-    if "amount" in voucher_columns and "invoice_amount" in voucher_columns:
-        conn.execute("UPDATE voucher_entries SET invoice_amount = amount WHERE invoice_amount IS NULL")
-        conn.execute("UPDATE voucher_entries SET tds = 0 WHERE tds IS NULL")
-        conn.execute("UPDATE voucher_entries SET net_amount = invoice_amount WHERE net_amount IS NULL")
+    if not st.session_state.get("_entry_bootstrap_done"):
+        # Default Ledgers
+        _default_ledgers = [
+            "Kukuyo Camlin Ltd.",
+            "Advance Account",
+            "Against Bill",
+            "TDS Deduction",
+            "Cash Account",
+            "Bank Account",
+            "Sale Account",
+            "Purchase Account",
+        ]
+        for _ledger_name in _default_ledgers:
+            conn.execute(
+                "INSERT INTO ledger_master (ledger_name) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM ledger_master WHERE ledger_name = ?)",
+                (_ledger_name, _ledger_name)
+            )
         conn.commit()
 
-    _tds_cleanup_key = "manual_tds_only_v1"
-    _already_cleaned = conn.execute(
-        "SELECT 1 FROM app_migrations WHERE migration_key = ?",
-        (_tds_cleanup_key,)
-    ).fetchone()
-    if not _already_cleaned:
-        conn.execute(
-            "UPDATE voucher_entries SET tds = 0, net_amount = invoice_amount "
-            "WHERE ROUND(COALESCE(tds,0),2) = ROUND(COALESCE(invoice_amount,0) * 0.001,2) "
-            "AND ROUND(COALESCE(net_amount,0),2) = ROUND(COALESCE(invoice_amount,0) - COALESCE(tds,0),2)"
-        )
-        conn.execute(
-            "INSERT INTO app_migrations (migration_key) VALUES (?)",
+        # Master default groups
+        for _g in ("Paper", "Board", "Consumable"):
+            conn.execute(
+                "INSERT INTO inventory_group_master (group_name) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM inventory_group_master WHERE group_name = ?)",
+                (_g, _g),
+            )
+        for _g in ("Default", "Current Assets", "Bank/Cash", "Income", "Expenses", "Liabilities", "Capital"):
+            conn.execute(
+                "INSERT INTO account_group_master (group_name) SELECT ? WHERE NOT EXISTS (SELECT 1 FROM account_group_master WHERE group_name = ?)",
+                (_g, _g),
+            )
+        conn.execute("UPDATE ledger_master SET group_name = 'Default' WHERE group_name IS NULL OR group_name = ''")
+        conn.commit()
+
+        # Voucher columns compatibility
+        voucher_columns = {row[1] for row in conn.execute("PRAGMA table_info(voucher_entries)").fetchall()}
+        if "amount" in voucher_columns and "invoice_amount" in voucher_columns:
+            conn.execute("UPDATE voucher_entries SET invoice_amount = amount WHERE invoice_amount IS NULL")
+            conn.execute("UPDATE voucher_entries SET tds = 0 WHERE tds IS NULL")
+            conn.execute("UPDATE voucher_entries SET net_amount = invoice_amount WHERE net_amount IS NULL")
+            conn.commit()
+
+        _tds_cleanup_key = "manual_tds_only_v1"
+        _already_cleaned = conn.execute(
+            "SELECT 1 FROM app_migrations WHERE migration_key = ?",
             (_tds_cleanup_key,)
-        )
-        conn.commit()
+        ).fetchone()
+        if not _already_cleaned:
+            conn.execute(
+                "UPDATE voucher_entries SET tds = 0, net_amount = invoice_amount "
+                "WHERE ROUND(COALESCE(tds,0),2) = ROUND(COALESCE(invoice_amount,0) * 0.001,2) "
+                "AND ROUND(COALESCE(net_amount,0),2) = ROUND(COALESCE(invoice_amount,0) - COALESCE(tds,0),2)"
+            )
+            conn.execute(
+                "INSERT INTO app_migrations (migration_key) VALUES (?)",
+                (_tds_cleanup_key,)
+            )
+            conn.commit()
+
+        st.session_state["_entry_bootstrap_done"] = True
 
     # CRUD Helpers
     def _table_columns(table_name):
         return [row[1] for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()]
 
     def _fetch_recent_entries(table_name, limit=50):
-        cols = _table_columns(table_name)
-        date_col = next((c for c in ("entry_date", "po_date", "production_date", "despatch_date") if c in cols), None)
-        if date_col:
-            return conn.execute(
-                f"SELECT * FROM {table_name} ORDER BY {date_col} ASC, id ASC LIMIT ?", (limit,)
-            ).fetchall()
-        return conn.execute(f"SELECT * FROM {table_name} ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+        return _fetch_recent_entries_cached(table_name, limit)
 
     def _delete_entry(table_name, entry_id):
         conn.execute(f"DELETE FROM {table_name} WHERE id = ?", (int(entry_id),))
@@ -587,6 +701,13 @@ def render():
         st.session_state["_paper_force_reset"] = True
         st.session_state["_po_force_reset"] = True
         st.session_state["_board_force_reset"] = True
+        try:
+            _fetch_recent_entries_cached.clear()
+            _sale_item_options_cached.clear()
+            _sale_item_meta_cached.clear()
+            _cf_item_options_cached.clear()
+        except Exception:
+            pass
 
     def _update_entry(table_name, entry_id, values):
         columns = _table_columns(table_name)
@@ -1785,83 +1906,10 @@ def render():
                     _party_state_code = None
 
                     def _sale_item_options():
-                        opts = []
-                        try:
-                            pcs = conn.execute(
-                                "SELECT DISTINCT product_code FROM po_released_entries "
-                                "WHERE product_code IS NOT NULL AND TRIM(product_code)<>''"
-                            ).fetchall()
-                            for (code,) in pcs:
-                                code = str(code).strip()
-                                if code and code not in opts:
-                                    opts.append(code)
-                        except Exception:
-                            pass
-                        try:
-                            for (nm,) in conn.execute(
-                                "SELECT item_name FROM inventory_item_master "
-                                "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' ORDER BY item_name"
-                            ).fetchall():
-                                nm = str(nm).strip()
-                                if nm and nm not in opts:
-                                    opts.append(nm)
-                        except Exception:
-                            pass
-                        try:
-                            for (nm,) in conn.execute(
-                                "SELECT item_name FROM consumable_item_master "
-                                "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' ORDER BY item_name"
-                            ).fetchall():
-                                nm = str(nm).strip()
-                                if nm and nm not in opts:
-                                    opts.append(nm)
-                        except Exception:
-                            pass
-                        try:
-                            for (nm,) in conn.execute(
-                                "SELECT DISTINCT item_name FROM consumable_cf_entries "
-                                "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' ORDER BY item_name"
-                            ).fetchall():
-                                nm = str(nm).strip()
-                                if nm and nm not in opts:
-                                    opts.append(nm)
-                        except Exception:
-                            pass
-                        return opts
+                        return _sale_item_options_cached()
 
                     def _sale_item_meta(name):
-                        name = str(name or "").strip()
-                        meta = {"name": name, "hsn": "", "tax": "", "rate": 0.0, "unit": ""}
-                        inv_row = None
-                        try:
-                            inv_row = conn.execute(
-                                "SELECT hsn_code, gst_rate, rate, unit FROM inventory_item_master "
-                                "WHERE item_name = ? LIMIT 1",
-                                (name,),
-                            ).fetchone()
-                        except Exception:
-                            pass
-                        if inv_row:
-                            meta.update({"hsn": str(inv_row[0] or "").strip(), "tax": str(inv_row[1] or "18").strip(),
-                                         "rate": float(inv_row[2] or 0), "unit": str(inv_row[3] or "").strip()})
-                        try:
-                            order_month = _sale_dt.strftime("%B %Y")
-                            prow = conn.execute(
-                                "SELECT po_rate FROM po_released_entries "
-                                "WHERE product_code = ? AND order_month = ? ORDER BY id DESC LIMIT 1",
-                                (name, order_month),
-                            ).fetchone()
-                            if not prow:
-                                prow = conn.execute(
-                                    "SELECT po_rate FROM po_released_entries "
-                                    "WHERE product_code = ? ORDER BY id DESC LIMIT 1",
-                                    (name,),
-                                ).fetchone()
-                            if prow:
-                                meta["rate"] = float(prow[0] or 0)
-                        except Exception:
-                            pass
-                        return meta
+                        return _sale_item_meta_cached(name, _sale_dt.strftime("%B %Y"))
 
                     def _sale_net_from_state():
                         _n = max(1, int(st.session_state.get(f"{_sale_pk}_item_count", 1)))
