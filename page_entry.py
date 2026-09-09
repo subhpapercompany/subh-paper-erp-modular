@@ -1761,6 +1761,26 @@ def render():
                                     opts.append(nm)
                         except Exception:
                             pass
+                        try:
+                            for (nm,) in conn.execute(
+                                "SELECT item_name FROM consumable_item_master "
+                                "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' ORDER BY item_name"
+                            ).fetchall():
+                                nm = str(nm).strip()
+                                if nm and nm not in opts:
+                                    opts.append(nm)
+                        except Exception:
+                            pass
+                        try:
+                            for (nm,) in conn.execute(
+                                "SELECT DISTINCT item_name FROM consumable_cf_entries "
+                                "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' ORDER BY item_name"
+                            ).fetchall():
+                                nm = str(nm).strip()
+                                if nm and nm not in opts:
+                                    opts.append(nm)
+                        except Exception:
+                            pass
                         return opts
 
                     def _sale_item_meta(name):
