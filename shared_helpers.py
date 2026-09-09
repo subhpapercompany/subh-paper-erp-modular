@@ -379,11 +379,49 @@ def fetch_making_rate(product_code):
         return 0.0
 
 
+def fetch_case_packing(product_code):
+    """Return the 'case packing' (books/case) from case.xlsx (Sheet3) for the code."""
+    code = str(product_code or "").strip()
+    if not code:
+        return None
+    try:
+        _here = os.path.dirname(os.path.abspath(__file__))
+        case_lookup_files = [
+            "master_data/case.xlsx",
+            "case.xlsx",
+            os.path.join(os.path.dirname(_here), "case.xlsx"),
+        ]
+        case_path = next((p for p in case_lookup_files if os.path.exists(p)), None)
+        if not case_path:
+            return None
+        case_df = pd.read_excel(case_path, sheet_name="Sheet3", header=1)
+        if "Product Code" not in case_df.columns or "case packing" not in case_df.columns:
+            return None
+        match = case_df[case_df["Product Code"].astype(str).str.strip() == code]
+        if match.empty:
+            return None
+        value = match.iloc[0]["case packing"]
+        if value is None or str(value).strip() == "":
+            return None
+        return float(value)
+    except Exception:
+        return None
+
 def fetch_po_request_case_qty(conn, product_code, order_month=None):
-    """Return PO Request Report column 10 (Case Qty) for the matching product."""
+    """Return PO Request Report column 10 (Case Qty) for the matching product.
+
+    Primary source: case.xlsx 'case packing' column (books per case) for the
+    product code. Falls back to the old PO Request Report/Product-Code logic.
+    """
     code = str(product_code or "").strip()
     if not code:
         return 0.0
+    try:
+        packing = fetch_case_packing(code)
+        if packing is not None and packing > 0:
+            return float(packing)
+    except Exception:
+        pass
     try:
         if order_month:
             q = pd.read_sql_query(
