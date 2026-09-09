@@ -121,7 +121,8 @@ def render():
         font-size: 12px;
     }
     .fe-item-row > div { min-width: 0; }
-    .fe-item-row .fe-amt {
+    .fe-item-fld.fe-amt {
+        justify-content: flex-end;
         text-align: right;
         font-weight: 700;
         color: #0f172a;
@@ -137,6 +138,13 @@ def render():
         color: #0f172a !important;
     }
     .fe-item-fld {
+        background: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 4px !important;
+        padding: 2px 8px !important;
+        min-height: 30px;
+        display: flex;
+        align-items: center;
         font-size: 12px;
         color: #0f172a;
         white-space: nowrap;
@@ -1996,9 +2004,9 @@ def render():
                                 st.session_state[f"{_sale_pk}_lastitem_{_si}"] = None
                         _im = _sale_item_meta(_itm) if _itm else {"name": "", "hsn": "", "tax": "", "rate": 0.0, "unit": ""}
                         with _ic[1]:
-                            st.markdown(f"<div class='fe-item-fld' style='padding-top:6px;'>{html.escape(_im['hsn'])}</div>", unsafe_allow_html=True)
+                            st.markdown(f"<div class='fe-item-fld'>{html.escape(_im['hsn'])}</div>", unsafe_allow_html=True)
                         with _ic[2]:
-                            st.markdown(f"<div class='fe-item-fld' style='padding-top:6px;'>{html.escape(_im['tax'])}</div>", unsafe_allow_html=True)
+                            st.markdown(f"<div class='fe-item-fld'>{html.escape(_im['tax'])}</div>", unsafe_allow_html=True)
                         with _ic[3]:
                             _sqty = st.number_input("Qty", min_value=0.0, step=1.0, value=None,
                                                     format="%.2f", key=f"{_sale_pk}_qty_{_si}", label_visibility="collapsed")
@@ -2008,7 +2016,7 @@ def render():
                         _qtr = float(_sqty or 0)
                         _amt = round(_qtr * float(_srt or 0), 2)
                         with _ic[5]:
-                            st.markdown(f"<div class='fe-item-fld fe-amt' style='padding-top:6px;'>₹ {_amt:,.2f}</div>", unsafe_allow_html=True)
+                            st.markdown(f"<div class='fe-item-fld fe-amt'>₹ {_amt:,.2f}</div>", unsafe_allow_html=True)
                         sale_item_rows.append((_itm, _im, _qtr, float(_srt or 0), _amt, _del_item))
                         _sale_item_total += _amt
                     _si_del = next((i for i, r in enumerate(sale_item_rows) if r[5]), None)
