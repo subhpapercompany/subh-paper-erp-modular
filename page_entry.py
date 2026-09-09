@@ -350,7 +350,7 @@ def render():
             index=0,
             key="entry_mode_selector"
         )
-    month_options = sorted(get_month_year_options())
+    month_options = get_month_only_options()
     conn = get_db_connection(private=True)
     
     def ensure_tables(conn):

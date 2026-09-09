@@ -135,6 +135,10 @@ def get_month_year_options():
         options.append(f"{month_name} {next_year}")
     return options
 
+def get_month_only_options():
+    """Order Month dropdown: sirf month names, April se March tak (FY order)."""
+    return [datetime.date(2000, m, 1).strftime("%B") for m in [4,5,6,7,8,9,10,11,12,1,2,3]]
+
 # ==============================================================================
 # DATABASE FUNCTIONS
 # ==============================================================================
