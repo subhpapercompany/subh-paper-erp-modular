@@ -260,9 +260,12 @@ def fetch_case_mrp(product_code):
     if not code:
         return None
     try:
+        _here = os.path.dirname(os.path.abspath(__file__))
         case_lookup_files = [
             "master_data/case.xlsx",
             "case.xlsx",
+            os.path.join(os.path.dirname(_here), "case.xlsx"),
+            os.path.join(_here, "..", "case.xlsx"),
         ]
         case_path = next((p for p in case_lookup_files if os.path.exists(p)), None)
         if not case_path:
