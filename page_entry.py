@@ -701,6 +701,8 @@ def render():
         st.session_state["_paper_force_reset"] = True
         st.session_state["_po_force_reset"] = True
         st.session_state["_board_force_reset"] = True
+        st.session_state["_pr22_force_reset"] = True
+        st.session_state["_porl_force_reset"] = True
         try:
             _fetch_recent_entries_cached.clear()
             _sale_item_options_cached.clear()
@@ -976,6 +978,30 @@ def render():
     # ------------------ FORM 2: PO REQUEST ------------------
     elif chosen_module == "2. PO Request Form":
         st.subheader("📋 PO Form Data")
+
+        # Save / Clear Form ke baad har field blank ho jaye — browser widget
+        # state baar-baar purana value restore karta hai, is liye force-set karte
+        # hain widgets banne se PEHLE.
+        if st.session_state.pop("_pr22_force_reset", False):
+            for _reset_key, _reset_value in {
+                "pr22_po_month": None,
+                "pr22_po_date": None,
+                "pr22_po_code": "",
+                "pr22_mrp": None,
+                "pr22_order_qty": None,
+                "pr22_produced_qty": None,
+                "pr22_paper_rate": None,
+                "pr22_tax_paper": None,
+                "pr22_mill_paper": None,
+                "pr22_board_rate": None,
+                "pr22_tax_board": None,
+                "pr22_mill_board": None,
+                "pr22_lamination": None,
+            }.items():
+                st.session_state[_reset_key] = _reset_value
+            st.session_state.pop("_pr22_mrp_source_code", None)
+            st.session_state.pop("_pr22_order_qty_signature", None)
+
         c1, c2, c3, c4 = st.columns(4)
         po_month = c1.selectbox("PO Month", month_options, index=None, placeholder="Select PO Month", key="pr22_po_month")
         with c2:
@@ -999,7 +1025,7 @@ def render():
                     st.session_state.pop("pr22_mrp", None)
                 st.session_state["_pr22_mrp_source_code"] = current_mrp_code
         else:
-            st.session_state.pop("pr22_mrp", None)
+            st.session_state["pr22_mrp"] = None
             st.session_state.pop("_pr22_mrp_source_code", None)
         mrp = c4.number_input("MRP", min_value=0.0, step=0.01, value=None, format="%.2f", key="pr22_mrp")
         # Order Qty: auto-fetch from Dashboard "ORDER, PRODUCTION AND DESPATCH STATUS"
@@ -1034,7 +1060,7 @@ def render():
                 st.session_state["pr22_order_qty"] = int(order_qty_auto) if float(order_qty_auto).is_integer() else float(order_qty_auto)
                 st.session_state["_pr22_order_qty_signature"] = order_qty_signature
         else:
-            st.session_state.pop("pr22_order_qty", None)
+            st.session_state["pr22_order_qty"] = None
             st.session_state.pop("_pr22_order_qty_signature", None)
         c5, c6, c7, c8 = st.columns(4)
         order_qty = c5.number_input("Order Qty", min_value=0, step=1, value=None, key="pr22_order_qty")
@@ -1133,6 +1159,23 @@ def render():
     # ------------------ FORM 3: PO RELEASED ------------------
     elif chosen_module == "3. PO Released Form":
         st.subheader("📋 PO Release Form")
+
+        # Save / Clear Form ke baad fields blank ho jayein (browser widget state restore).
+        if st.session_state.pop("_porl_force_reset", False):
+            for _reset_key, _reset_value in {
+                "porl_month": None,
+                "porl_code": "",
+                "porl_ruling": "",
+                "porl_page": "",
+                "porl_qty": None,
+                "porl_destination": None,
+                "porl_number": "",
+                "porl_date": None,
+            }.items():
+                st.session_state[_reset_key] = _reset_value
+            st.session_state.pop("_porl_autofill_signature", None)
+            st.session_state.pop("_porl_qty_signature", None)
+
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             release_month = st.selectbox("Order Month", month_options, index=None, placeholder="Select Order Month", key="porl_month")
@@ -1177,8 +1220,8 @@ def render():
             st.session_state["porl_page"] = current_page
             st.session_state["_porl_autofill_signature"] = release_signature
         elif not release_code:
-            st.session_state.pop("porl_ruling", None)
-            st.session_state.pop("porl_page", None)
+            st.session_state["porl_ruling"] = ""
+            st.session_state["porl_page"] = ""
             st.session_state.pop("_porl_autofill_signature", None)
 
         with c3:
@@ -1218,7 +1261,7 @@ def render():
                 st.session_state["porl_qty"] = int(released_qty_auto) if float(released_qty_auto).is_integer() else float(released_qty_auto)
                 st.session_state["_porl_qty_signature"] = qty_signature
         else:
-            st.session_state.pop("porl_qty", None)
+            st.session_state["porl_qty"] = None
             st.session_state.pop("_porl_qty_signature", None)
         with c5:
             released_qty = st.number_input("PO Release Qty", min_value=0, step=1, value=None, key="porl_qty")
