@@ -551,6 +551,12 @@ def render():
         return [row[1] for row in conn.execute(f"PRAGMA table_info({table_name})").fetchall()]
 
     def _fetch_recent_entries(table_name, limit=50):
+        cols = _table_columns(table_name)
+        date_col = next((c for c in ("entry_date", "po_date", "production_date", "despatch_date") if c in cols), None)
+        if date_col:
+            return conn.execute(
+                f"SELECT * FROM {table_name} ORDER BY {date_col} ASC, id ASC LIMIT ?", (limit,)
+            ).fetchall()
         return conn.execute(f"SELECT * FROM {table_name} ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
 
     def _delete_entry(table_name, entry_id):
@@ -579,6 +585,8 @@ def render():
         st.session_state["_prod_force_reset"] = True
         st.session_state["_des_force_reset"] = True
         st.session_state["_paper_force_reset"] = True
+        st.session_state["_po_force_reset"] = True
+        st.session_state["_board_force_reset"] = True
 
     def _update_entry(table_name, entry_id, values):
         columns = _table_columns(table_name)
@@ -755,6 +763,10 @@ def render():
                     st.session_state["_des_force_reset"] = True
                 elif key_prefix == "paper_crud":
                     st.session_state["_paper_force_reset"] = True
+                elif key_prefix == "po_crud":
+                    st.session_state["_po_force_reset"] = True
+                elif key_prefix == "board_crud":
+                    st.session_state["_board_force_reset"] = True
                 st.session_state[f"{key_prefix}_clear_requested"] = True
                 st.rerun()
 
@@ -786,6 +798,17 @@ def render():
     # ------------------ FORM 1: PURCHASE ORDER ------------------
     if chosen_module == "1. Purchase Order Form":
         st.subheader("📦 Purchase Order Form")
+        if st.session_state.pop("_po_force_reset", False):
+            for _reset_key, _reset_value in {
+                "po_order_month": None,
+                "po_product_code": "",
+                "po_ruling_type": "",
+                "po_no_of_page": "",
+                "po_product_size": "",
+                "po_order_qty": None,
+            }.items():
+                st.session_state[_reset_key] = _reset_value
+            st.session_state.pop("_po_autofill_source_code", None)
         col_a, col_b, col_c = st.columns(3)
         with col_a:
             om_month = st.selectbox("Order Month", month_options, index=None, placeholder="Select Order Month", key="po_order_month")
@@ -1127,7 +1150,7 @@ def render():
         if st.session_state.pop("_prod_force_reset", False):
             for _reset_key, _reset_value in {
                 "prod_month": None,
-                "prod_date": "",
+                "prod_date": None,
                 "prod_code": "",
                 "prod_qty": None,
                 "prod_rej": None,
@@ -1139,17 +1162,8 @@ def render():
         c1, c2, c3, c4 = st.columns(4)
         prod_month = c1.selectbox("Order Month", month_options, index=None, placeholder="Select Order Month", key="prod_month")
 
-        # Production Date: compact 10-character field placed between Order Month and Product Code.
-        prod_date_str = c2.text_input(
-            "Production Date (DD/MM/YYYY)",
-            value="",
-            max_chars=10,
-            key="prod_date",
-            help="Enter date in DD/MM/YYYY format"
-        )
-        prod_date = parse_date_input(prod_date_str)
-        if prod_date is None and prod_date_str:
-            st.warning(f"Invalid date format: {prod_date_str}. Please use DD/MM/YYYY")
+        with c2:
+            prod_date, prod_date_str = get_date_input("Production Date (DD/MM/YYYY)", "prod_date")
 
         prod_code = c3.text_input("Product Code", max_chars=10, key="prod_code")
         p_page, p_ruling, _ = parse_product_code(prod_code)
@@ -1254,7 +1268,7 @@ def render():
         if st.session_state.pop("_des_force_reset", False):
             for _reset_key, _reset_value in {
                 "des_month": None,
-                "des_date": "",
+                "des_date": None,
                 "des_code": "",
                 "des_po_number": None,
                 "des_destination": None,
@@ -1268,19 +1282,10 @@ def render():
             st.session_state.pop("_des_last_po", None)
             st.session_state.pop("_des_size_signature", None)
 
-        # Compact Despatch Date (10 characters) placed between Despatch Month and Product Code.
         c1, c2, c3 = st.columns(3)
         despatch_month = c1.selectbox("Despatch Month", month_options, index=None, placeholder="Select Despatch Month", key="des_month")
-        despatch_date_str = c2.text_input(
-            "Despatch Date (DD/MM/YYYY)",
-            value="",
-            max_chars=10,
-            key="des_date",
-            help="Enter date in DD/MM/YYYY format"
-        )
-        despatch_date = parse_date_input(despatch_date_str)
-        if despatch_date is None and despatch_date_str:
-            st.warning(f"Invalid date format: {despatch_date_str}. Please use DD/MM/YYYY")
+        with c2:
+            despatch_date, despatch_date_str = get_date_input("Despatch Date (DD/MM/YYYY)", "des_date")
         despatch_code = c3.text_input("Product Code", max_chars=10, key="des_code")
         c4, c5, c6 = st.columns(3)
         po_number_rows = conn.execute("""SELECT DISTINCT po_number FROM po_released_entries WHERE COALESCE(po_number, '') <> '' ORDER BY po_number""").fetchall()
@@ -1452,6 +1457,29 @@ def render():
     # ------------------ FORM 7: BOARD DETAIL ------------------
     elif chosen_module == "7. Board Detail":
         st.subheader("📦 Board Detail")
+        if st.session_state.pop("_board_force_reset", False):
+            for _reset_key, _reset_value in {
+                "board_mode": None,
+                "board_invoice": "",
+                "board_party": None,
+                "board_godown": None,
+                "board_size": None,
+                "board_opening_stock": None,
+                "board_inward_qty": None,
+                "board_inward_rate": None,
+                "board_gst": None,
+                "board_inward_amount": None,
+                "board_out_printing": None,
+                "board_wastage": None,
+                "board_product_code": "",
+                "board_printed_received": None,
+                "board_rate": None,
+                "board_amount": None,
+                "board_consumption": None,
+            }.items():
+                st.session_state[_reset_key] = _reset_value
+            st.session_state.pop("_board_amount_signature", None)
+            st.session_state.pop("_board_amount2_signature", None)
         # Compact date field placed between Entry Type and Invoice No.
         c1, c2, c3, c4, c5 = st.columns(5)
         entry_mode = c1.selectbox("Entry Type", ["Purchase / Inward", "Process / Outward"], index=None, placeholder="Select Entry Type", key="board_mode")
@@ -1488,7 +1516,7 @@ def render():
             st.session_state.pop("board_inward_amount", None)
             st.session_state.pop("_board_amount_signature", None)
         inward_amount = c11.number_input("Inward Amount", min_value=0.0, step=0.01, value=None, format="%.2f", key="board_inward_amount", disabled=(entry_mode == "Process / Outward"))
-        out_for_printing = c12.number_input("Out for Printing (Sheet)", min_value=0.0, step=1.0, value=None, format="%.0f", key="board_out_printing")
+        out_for_printing = c12.number_input("Out for Printing (Sheet)", min_value=0.0, step=1.0, value=None, format="%.0f", key="board_out_printing", disabled=(entry_mode == "Process / Outward"))
         wastage = c13.number_input("Wastage (Sheet)", min_value=0.0, step=1.0, value=None, format="%.0f", key="board_wastage", disabled=(entry_mode == "Process / Outward"))
         c15, c16, c17, c18 = st.columns(4)
         product_code = c15.text_input("Product Code", max_chars=10, key="board_product_code", disabled=(entry_mode == "Process / Outward"))

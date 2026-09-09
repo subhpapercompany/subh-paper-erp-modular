@@ -228,12 +228,17 @@ def parse_product_code(p_code):
 
 def _find_making_rate_chart_file():
     """Locate the user supplied Making rate chart workbook."""
+    _here = os.path.dirname(os.path.abspath(__file__))
+    _parent = os.path.dirname(_here)
     candidates = [
         "Making rate chart.xlsx",
         "MAKING RATE CHART.xlsx",
         "Making Rate Chart.xlsx",
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "Making rate chart.xlsx"),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "MAKING RATE CHART.xlsx"),
+        os.path.join(_here, "Making rate chart.xlsx"),
+        os.path.join(_here, "MAKING RATE CHART.xlsx"),
+        os.path.join(_parent, "MAKING RATE CHART.xlsx"),
+        os.path.join(_parent, "Making Rate Chart.xlsx"),
+        os.path.join(_parent, "Making rate chart.xlsx"),
         os.path.join(os.getcwd(), "Making rate chart.xlsx"),
     ]
     for path in candidates:
@@ -429,11 +434,13 @@ def fetch_production_tab5_calculations(conn, product_code, production_qty):
 
     try:
         base_weight = (col16 * col17 * col18) / 20000 / 493.75
+        # Production Entry: Book Weight is always divided by 500 (per user rule),
+        # not by 16 or 12.
         if third_digit == "3":
-            book_weight_value = base_weight * (col6 / 16)
+            book_weight_value = base_weight * (col6 / 500)
             board_consumption_value = qty / 8
         else:
-            book_weight_value = base_weight * (col6 / 12)
+            book_weight_value = base_weight * (col6 / 500)
             board_consumption_value = qty / 3
 
         paper_consumption_value = book_weight_value * qty
