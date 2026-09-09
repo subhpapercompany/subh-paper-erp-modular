@@ -857,13 +857,18 @@ def render():
                     key="others_report_type"
                 )
                 
-                report_date, report_date_str = get_date_input(
-                    "Report Date (DD/MM/YYYY)",
-                    "others_report_date",
+                report_from_date, report_from_str = get_date_input(
+                    "From Date (DD/MM/YYYY)",
+                    "others_report_from",
                     default_value=get_today_str()
                 )
-                
-                if report_date:
+                report_to_date, report_to_str = get_date_input(
+                    "To Date (DD/MM/YYYY)",
+                    "others_report_to",
+                    default_value=get_today_str()
+                )
+
+                if report_from_date and report_to_date:
                     if report_type == "Trial Balance":
                         st.markdown("##### Trial Balance")
                         
@@ -880,9 +885,9 @@ def render():
                                 SELECT dr_cr, SUM(COALESCE(invoice_amount,0))
                                 FROM voucher_entries
                                 WHERE TRIM(LOWER(ledger_head)) = ?
-                                AND entry_date <= ?
+                                AND entry_date >= ? AND entry_date <= ?
                                 GROUP BY dr_cr
-                            """, (ledger_name.lower(), report_date_str)).fetchall()
+                            """, (ledger_name.lower(), report_from_str, report_to_str)).fetchall()
                             
                             debit_total = 0.0
                             credit_total = 0.0
@@ -928,7 +933,7 @@ def render():
 
                             # Title row
                             ws.merge_cells('A1:C1')
-                            ws['A1'] = f'TRIAL BALANCE - {report_date_str}'
+                            ws['A1'] = f'TRIAL BALANCE - {report_from_str} TO {report_to_str}'
                             ws['A1'].font = Font(size=14, bold=True)
                             ws['A1'].alignment = Alignment(horizontal='center')
 
@@ -942,7 +947,7 @@ def render():
                                     ws.cell(row=row_idx, column=col_idx, value=value)
                             
                             ws.merge_cells('A1:C1')
-                            ws['A1'] = f'TRIAL BALANCE - {report_date_str}'
+                            ws['A1'] = f'TRIAL BALANCE - {report_from_str} TO {report_to_str}'
                             ws['A1'].font = Font(size=14, bold=True)
                             ws['A1'].alignment = Alignment(horizontal='center')
                             
@@ -984,14 +989,14 @@ def render():
                             show_report_preview(
                                 df,
                                 "TRIAL BALANCE",
-                                f"As on {format_date(report_date)}",
+                                f"As on {format_date(report_from_date)} To {format_date(report_to_date)}",
                                 "trial_balance_report"
                             )
 
                             st.download_button(
                                 "⬇️ Download Trial Balance (Excel)",
                                 data=final_buffer.getvalue(),
-                                file_name=f"TrialBalance_{report_date_str.replace('/', '-')}.xlsx",
+                                file_name=f"TrialBalance_{report_from_str.replace('/', '-')}_to_{report_to_str.replace('/', '-')}.xlsx",
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                 key="download_trial_balance"
                             )
@@ -1014,9 +1019,9 @@ def render():
                                 SELECT SUM(COALESCE(invoice_amount,0))
                                 FROM voucher_entries
                                 WHERE TRIM(LOWER(ledger_head)) = ?
-                                AND entry_date <= ?
+                                AND entry_date >= ? AND entry_date <= ?
                                 AND TRIM(UPPER(dr_cr)) = 'CR'
-                            """, (ledger.lower(), report_date_str)).fetchone()
+                            """, (ledger.lower(), report_from_str, report_to_str)).fetchone()
                             if rows and rows[0]:
                                 total_revenue += float(rows[0])
                         
@@ -1026,9 +1031,9 @@ def render():
                                 SELECT SUM(COALESCE(invoice_amount,0))
                                 FROM voucher_entries
                                 WHERE TRIM(LOWER(ledger_head)) = ?
-                                AND entry_date <= ?
+                                AND entry_date >= ? AND entry_date <= ?
                                 AND TRIM(UPPER(dr_cr)) = 'DR'
-                            """, (ledger.lower(), report_date_str)).fetchone()
+                            """, (ledger.lower(), report_from_str, report_to_str)).fetchone()
                             if rows and rows[0]:
                                 total_expenses += float(rows[0])
                         
@@ -1045,17 +1050,17 @@ def render():
                                 SELECT SUM(COALESCE(invoice_amount,0))
                                 FROM voucher_entries
                                 WHERE TRIM(LOWER(ledger_head)) = ?
-                                AND entry_date <= ?
+                                AND entry_date >= ? AND entry_date <= ?
                                 AND TRIM(UPPER(dr_cr)) = 'CR'
-                            """, (ledger_name.lower(), report_date_str)).fetchone()
+                            """, (ledger_name.lower(), report_from_str, report_to_str)).fetchone()
                             
                             debit_rows = conn.execute("""
                                 SELECT SUM(COALESCE(invoice_amount,0))
                                 FROM voucher_entries
                                 WHERE TRIM(LOWER(ledger_head)) = ?
-                                AND entry_date <= ?
+                                AND entry_date >= ? AND entry_date <= ?
                                 AND TRIM(UPPER(dr_cr)) = 'DR'
-                            """, (ledger_name.lower(), report_date_str)).fetchone()
+                            """, (ledger_name.lower(), report_from_str, report_to_str)).fetchone()
                             
                             credit_total = float(credit_rows[0] or 0.0) if credit_rows else 0.0
                             debit_total = float(debit_rows[0] or 0.0) if debit_rows else 0.0
@@ -1134,7 +1139,7 @@ def render():
                                     if sheet_name in wb.sheetnames:
                                         ws = wb[sheet_name]
                                         ws.merge_cells('A1:B1')
-                                        ws['A1'] = f'PROFIT & LOSS ACCOUNT - {report_date_str}'
+                                        ws['A1'] = f'PROFIT & LOSS ACCOUNT - {report_from_str} TO {report_to_str}'
                                         ws['A1'].font = Font(size=14, bold=True)
                                         ws['A1'].alignment = Alignment(horizontal='center')
                                         
@@ -1175,14 +1180,14 @@ def render():
                                 show_report_preview(
                                     df,
                                     "PROFIT & LOSS ACCOUNT",
-                                    f"As on {format_date(report_date)}",
+                                    f"As on {format_date(report_from_date)} To {format_date(report_to_date)}",
                                     "profit_loss_report"
                                 )
 
                                 st.download_button(
                                     "⬇️ Download P&L Account (Excel)",
                                     data=final_buffer.getvalue(),
-                                    file_name=f"ProfitLoss_{report_date_str.replace('/', '-')}.xlsx",
+                                    file_name=f"ProfitLoss_{report_from_str.replace('/', '-')}_to_{report_to_str.replace('/', '-')}.xlsx",
                                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                     key="download_pnl_report"
                                 )
@@ -1208,17 +1213,17 @@ def render():
                                 SELECT SUM(COALESCE(invoice_amount,0))
                                 FROM voucher_entries
                                 WHERE TRIM(LOWER(ledger_head)) = ?
-                                AND entry_date <= ?
+                                AND entry_date >= ? AND entry_date <= ?
                                 AND TRIM(UPPER(dr_cr)) = 'DR'
-                            """, (ledger.lower(), report_date_str)).fetchone()
+                            """, (ledger.lower(), report_from_str, report_to_str)).fetchone()
                             
                             credit_rows = conn.execute("""
                                 SELECT SUM(COALESCE(invoice_amount,0))
                                 FROM voucher_entries
                                 WHERE TRIM(LOWER(ledger_head)) = ?
-                                AND entry_date <= ?
+                                AND entry_date >= ? AND entry_date <= ?
                                 AND TRIM(UPPER(dr_cr)) = 'CR'
-                            """, (ledger.lower(), report_date_str)).fetchone()
+                            """, (ledger.lower(), report_from_str, report_to_str)).fetchone()
                             
                             debit_total = float(rows[0] or 0.0) if rows else 0.0
                             credit_total = float(credit_rows[0] or 0.0) if credit_rows else 0.0
@@ -1237,17 +1242,17 @@ def render():
                                 SELECT SUM(COALESCE(invoice_amount,0))
                                 FROM voucher_entries
                                 WHERE TRIM(LOWER(ledger_head)) = ?
-                                AND entry_date <= ?
+                                AND entry_date >= ? AND entry_date <= ?
                                 AND TRIM(UPPER(dr_cr)) = 'CR'
-                            """, (ledger.lower(), report_date_str)).fetchone()
+                            """, (ledger.lower(), report_from_str, report_to_str)).fetchone()
                             
                             debit_rows = conn.execute("""
                                 SELECT SUM(COALESCE(invoice_amount,0))
                                 FROM voucher_entries
                                 WHERE TRIM(LOWER(ledger_head)) = ?
-                                AND entry_date <= ?
+                                AND entry_date >= ? AND entry_date <= ?
                                 AND TRIM(UPPER(dr_cr)) = 'DR'
-                            """, (ledger.lower(), report_date_str)).fetchone()
+                            """, (ledger.lower(), report_from_str, report_to_str)).fetchone()
                             
                             credit_total = float(rows[0] or 0.0) if rows else 0.0
                             debit_total = float(debit_rows[0] or 0.0) if debit_rows else 0.0
@@ -1274,9 +1279,9 @@ def render():
                                 SELECT dr_cr, SUM(COALESCE(invoice_amount,0))
                                 FROM voucher_entries
                                 WHERE TRIM(LOWER(ledger_head)) = ?
-                                AND entry_date <= ?
+                                AND entry_date >= ? AND entry_date <= ?
                                 GROUP BY dr_cr
-                            """, (ledger_name.lower(), report_date_str)).fetchall()
+                            """, (ledger_name.lower(), report_from_str, report_to_str)).fetchall()
                             
                             debit_total = 0.0
                             credit_total = 0.0
@@ -1346,7 +1351,7 @@ def render():
                                 if sheet_name in wb.sheetnames:
                                     ws = wb[sheet_name]
                                     ws.merge_cells('A1:B1')
-                                    ws['A1'] = f'BALANCE SHEET - {report_date_str}'
+                                    ws['A1'] = f'BALANCE SHEET - {report_from_str} TO {report_to_str}'
                                     ws['A1'].font = Font(size=14, bold=True)
                                     ws['A1'].alignment = Alignment(horizontal='center')
                                     
@@ -1391,14 +1396,14 @@ def render():
                             show_report_preview(
                                 balance_preview_df,
                                 "BALANCE SHEET",
-                                f"As on {format_date(report_date)}",
+                                f"As on {format_date(report_from_date)} To {format_date(report_to_date)}",
                                 "balance_sheet_report"
                             )
 
                             st.download_button(
                                 "⬇️ Download Balance Sheet (Excel)",
                                 data=final_buffer.getvalue(),
-                                file_name=f"BalanceSheet_{report_date_str.replace('/', '-')}.xlsx",
+                                file_name=f"BalanceSheet_{report_from_str.replace('/', '-')}_to_{report_to_str.replace('/', '-')}.xlsx",
                                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                                 key="download_balance_sheet"
                             )
