@@ -437,6 +437,7 @@ def render():
                 "making_charges": "REAL",
                 "book_weight": "REAL",
                 "wip_type": "TEXT",
+                "wip_board": "TEXT",
                 "paper_consumption": "REAL",
                 "board_size": "TEXT",
                 "board_consumption": "REAL",
@@ -1320,6 +1321,7 @@ def render():
                 "prod_rej": None,
                 "prod_wip_type": None,
                 "prod_board_size": None,
+                "prod_wip_board": None,
             }.items():
                 st.session_state[_reset_key] = _reset_value
 
@@ -1384,11 +1386,16 @@ def render():
 
         c13.number_input("Paper Consumption", min_value=0.0, step=0.001, value=paper_consumption, format="%.3f", key="prod_paper_consumption")
 
-        c14, c15, _, _, _ = st.columns(5)
+        c14, c15, c16, _, _ = st.columns(5)
         board_options = ["77x98x190", "91x91x190"]
         board_index = board_options.index(calculated_board_size) if calculated_board_size in board_options else None
         board_size = c14.selectbox("Board Size", board_options, index=board_index, placeholder="Select Board Size", key="prod_board_size")
-        board_consumption = c15.number_input("Board Consumption", min_value=0.0, step=0.001, value=board_consumption, format="%.3f", key="prod_board_consumption")
+        wip_board_options = sorted({str(r[0]) for r in conn.execute(
+            "SELECT DISTINCT item_name FROM inventory_item_master "
+            "WHERE item_name IS NOT NULL AND TRIM(item_name)<>'' AND item_name LIKE '%PB%'"
+        ).fetchall()})
+        wip_board = c15.selectbox("WIP Board", wip_board_options, index=None, placeholder="Select WIP Board", key="prod_wip_board")
+        board_consumption = c16.number_input("Board Consumption", min_value=0.0, step=0.001, value=board_consumption, format="%.3f", key="prod_board_consumption")
         sb1, sb2, _ = st.columns([1.0, 0.9, 2.0])
         with sb1:
             if st.button("💾 Save Production Entry", type="primary", key="save_production_entry", use_container_width=True):
@@ -1401,12 +1408,12 @@ def render():
                         """INSERT INTO production_form_entries
                         (production_date, production_month, product_code, ruling_type, page, book_size,
                          plan_qty, ok_notebook, rejection_qty, case_quantity, making_rate,
-                         making_charges, book_weight, wip_type, paper_consumption, board_size, board_consumption)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                         making_charges, book_weight, wip_type, paper_consumption, board_size, wip_board, board_consumption)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (prod_date_str, prod_month, prod_code, p_ruling, str(p_page), p_size,
                          str(production_qty), str(ok_notebook), str(rejection_qty), str(case_quantity),
                          float(making_rate), float(making_charges), float(book_weight),
-                         wip_type, float(paper_consumption), board_size, float(board_consumption))
+                         wip_type, float(paper_consumption), board_size, wip_board, float(board_consumption))
                     )
                     conn.commit()
                     st.success("✅ Production Entry saved successfully.")
