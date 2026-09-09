@@ -122,8 +122,8 @@ def render():
     }
     .fe-item-row > div { min-width: 0; }
     .fe-item-fld.fe-amt {
-        justify-content: flex-end;
-        text-align: right;
+        justify-content: center;
+        text-align: center;
         font-weight: 700;
         color: #0f172a;
         white-space: nowrap;
@@ -142,14 +142,24 @@ def render():
         border: 1px solid #cbd5e1 !important;
         border-radius: 4px !important;
         padding: 2px 8px !important;
-        min-height: 30px;
+        height: 30px;
         display: flex;
         align-items: center;
+        justify-content: center;
         font-size: 12px;
         color: #0f172a;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.fe-item-fld) [data-testid="stNumberInput"] {
+        height: 30px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.fe-item-fld) [data-testid="stNumberInput"] input {
+        height: 30px !important;
+        min-height: 30px !important;
+        padding: 0 6px !important;
+        text-align: center !important;
     }
     .fe-summary {
         margin-left: auto;
@@ -1969,12 +1979,12 @@ def render():
                                 )
                     st.markdown(
                         "<div class='fe-item-head'>"
-                        "<span class='c' style='width:55%;'>Particulars / Item Name</span>"
-                        "<span class='c' style='width:11%;'>HSN/SAC</span>"
-                        "<span class='c' style='width:6%;'>Tax%</span>"
-                        "<span class='c' style='width:9%;'>Quantity</span>"
-                        "<span class='c' style='width:11%;'>Rate</span>"
-                        "<span class='c' style='width:8%; text-align:right;'>Amount</span>"
+                        "<span class='c' style='width:52%;'>Particulars / Item Name</span>"
+                        "<span class='c' style='width:11%; text-align:center;'>HSN/SAC</span>"
+                        "<span class='c' style='width:6%; text-align:center;'>Tax%</span>"
+                        "<span class='c' style='width:9%; text-align:center;'>Quantity</span>"
+                        "<span class='c' style='width:8%; text-align:center;'>Rate</span>"
+                        "<span class='c' style='width:12%; text-align:center;'>Amount</span>"
                         "</div>",
                         unsafe_allow_html=True,
                     )
@@ -1985,7 +1995,7 @@ def render():
                     _sale_item_total = 0.0
                     for _si in range(sale_item_count):
                         _prev_item = st.session_state.get(f"{_sale_pk}_lastitem_{_si}")
-                        _ic = st.columns([55, 11, 6, 9, 11, 8], vertical_alignment="center")
+                        _ic = st.columns([52, 11, 6, 9, 8, 12], vertical_alignment="center")
                         with _ic[0]:
                             _isd, _iss = st.columns([0.5, 6.5], vertical_alignment="center")
                             _del_item = _isd.button("🗑", key=f"{_sale_pk}_item_del_{_si}", help="Row delete karein")

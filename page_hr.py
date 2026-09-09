@@ -135,6 +135,32 @@ def render():
             hr_form_version = st.session_state.get("hr_employee_form_version", 0)
             hr_key = lambda name: f"hr_{name}_{hr_form_version}"
 
+            _pending_edit = st.session_state.pop("hr_emp_edit_pending", None)
+            if _pending_edit:
+                st.session_state["hr_emp_edit_id"] = _pending_edit.get("id")
+                _emp_edit_map = {
+                    "emp_id": "emp_id", "emp_name": "name", "category": "category",
+                    "daily_wage": "daily_wage", "ot_rate": "ot_rate",
+                    "basic_salary": "basic_salary", "conveyance": "conveyance",
+                    "pf_percent": "pf_percent", "esi_percent": "esi_percent",
+                    "professional_tax": "professional_tax", "mobile_no": "mobile_no",
+                    "aadhaar_no": "aadhaar_no", "bank_account": "bank_account",
+                    "ifsc_code": "ifsc_code", "bank_name": "bank_name",
+                    "address": "address", "date_of_joining": "date_of_joining",
+                }
+                _txt_fields = {"emp_id", "emp_name", "mobile_no", "aadhaar_no",
+                               "bank_account", "ifsc_code", "bank_name", "address"}
+                for _fk, _pk in _emp_edit_map.items():
+                    _val = _pending_edit.get(_pk)
+                    if _fk == "date_of_joining":
+                        st.session_state[hr_key(_fk)] = parse_date_input(_val) if _val else None
+                    elif _fk == "category":
+                        st.session_state[hr_key(_fk)] = _val if _val in HR_CATEGORY_OPTIONS else None
+                    else:
+                        if _fk in _txt_fields and _val is None:
+                            _val = ""
+                        st.session_state[hr_key(_fk)] = _val
+
             e1, e2, e3, e4, e5 = st.columns([1.0, 1.7, 1.15, 1.25, 1.25])
 
             with e1:
@@ -277,38 +303,47 @@ def render():
             with e19:
                 st.write("")
                 st.write("")
+                _hr_edit_id = st.session_state.get("hr_emp_edit_id")
+                _emp_id_val = str(emp_id).strip() if emp_id is not None else ""
+                _emp_name_val = str(emp_name).strip() if emp_name is not None else ""
                 if st.button(
-                    "Save Employee",
+                    "Update Employee" if _hr_edit_id else "Save Employee",
                     key=hr_key("save_employee"),
                     type="primary",
                     use_container_width=True
                 ):
-                    if not emp_id.strip() or not emp_name.strip():
+                    if not _emp_id_val or not _emp_name_val:
                         st.error("EMP ID and Name are required.")
                     elif not emp_category:
                         st.error("Please select Category: Wages or Payroll.")
                     else:
                         existing = hr_conn.execute(
-                            "SELECT id, name FROM hr_employee_master WHERE emp_id = ?",
-                            (emp_id.strip(),)
+                            "SELECT id, name FROM hr_employee_master WHERE emp_id = ? AND id != ?",
+                            (_emp_id_val, int(_hr_edit_id) if _hr_edit_id else -1)
                         ).fetchone()
 
                         if existing:
                             st.error(
-                                f"Duplicate Employee Code: EMP ID '{emp_id.strip()}' "
+                                f"Duplicate Employee Code: EMP ID '{_emp_id_val}' "
                                 f"already exists for '{existing[1]}'. "
                                 "Please use a unique EMP ID."
                             )
                         else:
                             attachment_name = None
                             attachment_path = None
+                            _old_attachment = (None, None)
+                            if _hr_edit_id:
+                                _old_attachment = hr_conn.execute(
+                                    "SELECT attachment_name, attachment_path FROM hr_employee_master WHERE id=?",
+                                    (int(_hr_edit_id),)
+                                ).fetchone() or (None, None)
 
                             if employee_attachment is not None:
                                 upload_root = Path("hr_employee_attachments")
                                 upload_root.mkdir(parents=True, exist_ok=True)
 
                                 safe_emp_id = re.sub(
-                                    r"[^A-Za-z0-9_-]+", "_", emp_id.strip()
+                                    r"[^A-Za-z0-9_-]+", "_", _emp_id_val
                                 ).strip("_") or "employee"
 
                                 employee_folder = upload_root / safe_emp_id
@@ -326,44 +361,174 @@ def render():
                                 attachment_name = safe_name
                                 attachment_path = str(attachment_file)
 
-                            hr_conn.execute(
-                                """INSERT INTO hr_employee_master
-                                   (emp_id, name, category, daily_wage, ot_rate,
-                                    basic_salary, conveyance, mobile_no,
-                                    aadhaar_no, bank_account, ifsc_code,
-                                    bank_name, address, date_of_joining,
-                                    attachment_name, attachment_path,
-                                    advance_balance, pf_percent, esi_percent,
-                                    professional_tax, is_outside_india)
-                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)""",
-                                (
-                                    emp_id.strip(),
-                                    emp_name.strip(),
-                                    emp_category,
-                                    float(daily_wage),
-                                    float(ot_rate),
-                                    float(basic_salary),
-                                    float(conveyance),
-                                    mobile_no.strip(),
-                                    aadhaar_no.strip(),
-                                    bank_account.strip(),
-                                    ifsc_code.strip().upper(),
-                                    bank_name.strip(),
-                                    address.strip(),
-                                    doj_str if date_of_joining else None,
-                                    attachment_name,
-                                    attachment_path,
-                                    float(pf_percent),
-                                    float(esi_percent),
-                                    float(professional_tax),
-                                    0  # is_outside_india = 0 by default
+                            if _hr_edit_id:
+                                hr_conn.execute(
+                                    """UPDATE hr_employee_master SET
+                                       emp_id=?, name=?, category=?, daily_wage=?, ot_rate=?,
+                                       basic_salary=?, conveyance=?, mobile_no=?,
+                                       aadhaar_no=?, bank_account=?, ifsc_code=?,
+                                       bank_name=?, address=?, date_of_joining=?,
+                                       attachment_name=?, attachment_path=?,
+                                       pf_percent=?, esi_percent=?, professional_tax=?
+                                       WHERE id=?""",
+                                    (
+                                        _emp_id_val,
+                                        _emp_name_val,
+                                        emp_category,
+                                        float(daily_wage),
+                                        float(ot_rate),
+                                        float(basic_salary),
+                                        float(conveyance),
+                                        mobile_no.strip(),
+                                        aadhaar_no.strip(),
+                                        bank_account.strip(),
+                                        ifsc_code.strip().upper(),
+                                        bank_name.strip(),
+                                        address.strip(),
+                                        doj_str if date_of_joining else None,
+                                        attachment_name if attachment_name else _old_attachment[0],
+                                        attachment_path if attachment_path else _old_attachment[1],
+                                        float(pf_percent),
+                                        float(esi_percent),
+                                        float(professional_tax),
+                                        int(_hr_edit_id)
+                                    )
                                 )
+                                hr_conn.commit()
+                                st.success("Employee details updated.")
+                            else:
+                                hr_conn.execute(
+                                    """INSERT INTO hr_employee_master
+                                       (emp_id, name, category, daily_wage, ot_rate,
+                                        basic_salary, conveyance, mobile_no,
+                                        aadhaar_no, bank_account, ifsc_code,
+                                        bank_name, address, date_of_joining,
+                                        attachment_name, attachment_path,
+                                        advance_balance, pf_percent, esi_percent,
+                                        professional_tax, is_outside_india)
+                                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)""",
+                                    (
+                                        _emp_id_val,
+                                        _emp_name_val,
+                                        emp_category,
+                                        float(daily_wage),
+                                        float(ot_rate),
+                                        float(basic_salary),
+                                        float(conveyance),
+                                        mobile_no.strip(),
+                                        aadhaar_no.strip(),
+                                        bank_account.strip(),
+                                        ifsc_code.strip().upper(),
+                                        bank_name.strip(),
+                                        address.strip(),
+                                        doj_str if date_of_joining else None,
+                                        attachment_name,
+                                        attachment_path,
+                                        float(pf_percent),
+                                        float(esi_percent),
+                                        float(professional_tax),
+                                        0  # is_outside_india = 0 by default
+                                    )
+                                )
+                                hr_conn.commit()
+                                st.success("Employee details saved.")
+                            st.session_state.pop("hr_emp_edit_id", None)
+                            st.session_state.pop("hr_emp_edit_pending", None)
+                            for _k in list(st.session_state.keys()):
+                                if _k.startswith("hr_"):
+                                    del st.session_state[_k]
+                            st.session_state["hr_employee_form_reset"] = True
+                            st.rerun()
+
+            # ---- COMPACT EDIT / DELETE FOR EXISTING EMPLOYEES ----
+            st.markdown("#### Manage Existing Employees")
+            _emp_common = hr_conn.execute(
+                "SELECT id, emp_id, name FROM hr_employee_master ORDER BY id"
+            ).fetchall()
+            if _emp_common:
+                _cur_edit_id = st.session_state.get("hr_emp_edit_id")
+                if _cur_edit_id:
+                    _erow = hr_conn.execute(
+                        "SELECT emp_id, name FROM hr_employee_master WHERE id=?",
+                        (int(_cur_edit_id),)
+                    ).fetchone()
+                    if _erow:
+                        st.info(f"✏️ Editing EMP: {_erow[0]} — {_erow[1]}  (Save karne par update hoga)")
+                _emp_opts = {f"{r[1]} — {r[2]}": r[0] for r in _emp_common}
+                _pick_label = list(_emp_opts.keys())
+                _act = st.columns([2.6, 0.7, 0.8], vertical_alignment="center")
+                with _act[0]:
+                    _sel_emp = st.selectbox(
+                        "Employee chunein (Edit / Delete):", _pick_label,
+                        index=None, placeholder="Employee chunein...",
+                        key="hr_emp_pick", label_visibility="collapsed"
+                    )
+                _sel_id = _emp_opts.get(_sel_emp)
+                with _act[1]:
+                    _emp_edit_clk = st.button("↩ Edit", key="hr_emp_edit_btn",
+                                             use_container_width=True,
+                                             disabled=(not _sel_id))
+                with _act[2]:
+                    _emp_del_clk = st.button("🗑 Delete", key="hr_emp_del_btn",
+                                             use_container_width=True,
+                                             disabled=(not _sel_id))
+                if _emp_edit_clk and _sel_id:
+                    _crow = hr_conn.execute(
+                        "SELECT * FROM hr_employee_master WHERE id=?", (int(_sel_id),)
+                    ).fetchone()
+                    if _crow:
+                        _ccols = [d[1] for d in hr_conn.execute(
+                            "PRAGMA table_info(hr_employee_master)").fetchall()]
+                        st.session_state["hr_emp_edit_pending"] = dict(zip(_ccols, _crow))
+                        st.session_state["hr_employee_form_reset"] = True
+                        st.rerun()
+                _del_pending = st.session_state.get("hr_emp_del_pending")
+                if _emp_del_clk and _sel_id:
+                    st.session_state["hr_emp_del_pending"] = _sel_id
+                    _del_pending = _sel_id
+                if _del_pending:
+                    _drow = hr_conn.execute(
+                        "SELECT id, emp_id, name FROM hr_employee_master WHERE id=?",
+                        (int(_del_pending),)
+                    ).fetchone()
+                    if _drow:
+                        _dcols = st.columns([1.2, 0.7, 0.7], vertical_alignment="center")
+                        with _dcols[0]:
+                            st.warning(f"Delete {_drow[1]} — {_drow[2]} ?")
+                        with _dcols[1]:
+                            _del_ok = st.button("⚡ Confirm Delete", key="hr_emp_del_ok",
+                                                type="primary", use_container_width=True)
+                        with _dcols[2]:
+                            _del_no = st.button("✖ Cancel", key="hr_emp_del_no",
+                                                use_container_width=True)
+                        if _del_no:
+                            st.session_state.pop("hr_emp_del_pending", None)
+                            st.rerun()
+                        if _del_ok:
+                            _dpath_row = hr_conn.execute(
+                                "SELECT attachment_path FROM hr_employee_master WHERE id=?",
+                                (int(_del_pending),)
+                            ).fetchone()
+                            if _dpath_row and _dpath_row[0]:
+                                try:
+                                    _dp = Path(_dpath_row[0])
+                                    if _dp.exists():
+                                        _dp.unlink()
+                                    if _dp.parent.exists():
+                                        _dp.parent.rmdir()
+                                except Exception:
+                                    pass
+                            hr_conn.execute(
+                                "DELETE FROM hr_employee_master WHERE id=?",
+                                (int(_del_pending),)
                             )
                             hr_conn.commit()
-                            st.success("Employee details saved.")
-                            st.session_state["hr_employee_form_reset"] = True
-                            _reset_entry_mode_form_fields()
+                            st.session_state.pop("hr_emp_del_pending", None)
+                            if st.session_state.get("hr_emp_edit_id") == _del_pending:
+                                st.session_state.pop("hr_emp_edit_id", None)
                             st.rerun()
+            else:
+                st.caption("Abhi koi employee add nahi hua hai.")
 
             employee_df = pd.read_sql_query(
                 """SELECT
@@ -635,8 +800,10 @@ def render():
                                 st.success("Attendance marked successfully.")
 
                             hr_conn.commit()
+                            for _rk in list(st.session_state.keys()):
+                                if _rk.startswith("hr_"):
+                                    del st.session_state[_rk]
                             st.session_state["hr_attendance_form_reset"] = True
-                            _reset_entry_mode_form_fields()
                             st.rerun()
 
                 if att_date_str:
