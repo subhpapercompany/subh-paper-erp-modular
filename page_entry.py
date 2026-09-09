@@ -1584,11 +1584,16 @@ def render():
                 editing_group = st.session_state.get("fe_editing_group")
                 editing_no = st.session_state.get("fe_editing_no")
                 editing_ids = st.session_state.get("fe_editing_ids")
-                # ---- SALE MODE: FRESH BLANK PAGE ----
-                if voucher_mode == "Sale":
+                # ---- SALE / PURCHASE MODE: FRESH BLANK PAGE ----
+                if voucher_mode in ("Sale", "Purchase"):
+                    _vm = voucher_mode
+                    _is_purchase = (_vm == "Purchase")
+                    _pty_side = "Cr" if _is_purchase else "Dr"
+                    _acct_side = "Dr" if _is_purchase else "Cr"
+                    _gst_side = "Dr" if _is_purchase else "Cr"
                     _sale_next_no = 1
                     try:
-                        _sale_nums = conn.execute("SELECT invoice_no FROM voucher_entries WHERE mode='Sale'").fetchall()
+                        _sale_nums = conn.execute(f"SELECT invoice_no FROM voucher_entries WHERE mode='{_vm}'").fetchall()
                         _sale_int = []
                         for (val,) in _sale_nums:
                             try:
@@ -1605,9 +1610,9 @@ def render():
                     _flash_msg = st.session_state.pop("fe_flash", None)
                     if _flash_msg:
                         st.success(_flash_msg)
-                    st.markdown("""
+                    st.markdown(f"""
                     <div class="fe-topbar">
-                        <div class="fe-brand">🧾 Financial Entry — Sale</div>
+                        <div class="fe-brand">🧾 Financial Entry — {_vm}</div>
                         <div class="fe-company">🏢 SUBH PAPER COMPANY</div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -1650,14 +1655,14 @@ def render():
                                 st.rerun()
                         with no_col:
                             st.markdown(
-                                f"<span class='tally-avc-type-sm'>Sales&nbsp;&nbsp;No.&nbsp;:</span>"
+                                f"<span class='tally-avc-type-sm'>{_vm}&nbsp;&nbsp;No.&nbsp;:</span>"
                                 f"<span class='fe-sale-auto-no'><b>{_sale_display_no}</b></span>",
                                 unsafe_allow_html=True
                             )
                     with cr:
                         _sale_def_date = st.session_state.get(f"{_sale_pk}_date") or datetime.date.today()
                         _sale_dt = st.date_input(
-                            "Sale Date (F2)",
+                            f"{_vm} Date (F2)",
                             value=_sale_def_date,
                             format="DD/MM/YYYY",
                             key=f"{_sale_pk}_date",
@@ -1676,7 +1681,7 @@ def render():
                       try{
                         const findWrap=()=>{
                           const labels=Array.from(p.document.querySelectorAll('label'));
-                          const lab=Array.from(labels).find(x=>(x.innerText||'').includes('Sale Date (F2)'));
+                          const lab=Array.from(labels).find(x=>(x.innerText||'').includes(' Date (F2)'));
                           return lab ? (lab.closest('[data-testid="stElementContainer"]') || lab.parentElement.parentElement) : null;
                         };
                         const hideWidget=()=>{
@@ -1880,27 +1885,28 @@ def render():
                                     (_sel_party,),
                                 ).fetchone()[0]
                                 _bal_cur = float(_bal_open or 0) + float(_bal_dr or 0) - float(_bal_cr or 0)
+                                _pty_color = "#15803d" if _is_purchase else ""
                                 st.markdown(
                                     f"<div class='fe-sale-bal-row fe-sale-plabel' style='font-size:12px;font-weight:400;'>Current Balance :"
-                                    f"<span class='fe-sale-cbalance' style='font-size:12px;font-weight:400;'> {abs(_bal_cur):,.2f} Dr</span></div>",
+                                    f"<span class='fe-sale-cbalance' style='color:{_pty_color};font-size:12px;font-weight:400;'> {abs(_bal_cur):,.2f} {_pty_side}</span></div>",
                                     unsafe_allow_html=True,
                                 )
                         with _pl_a:
                             _party_amt = _sale_net_from_state()
                             st.markdown(
-                                f"<div class='fe-sale-inline-label' style='margin-top:14px;'>Debit Amount :</div>"
+                                f"<div class='fe-sale-inline-label' style='margin-top:14px;'>{'Credit' if _is_purchase else 'Debit'} Amount :</div>"
                                 f"<div class='fe-sale-amt-box'>₹ {_party_amt:,.2f}</div>",
                                 unsafe_allow_html=True,
                             )
                         _sl_l, _sl_f, _sl_x = st.columns([0.9, 3.6, 1.0], vertical_alignment="center")
                         with _sl_l:
-                            st.markdown("<div class='fe-sale-inline-label' style='margin-top:12px;'>Sales Ledger :</div>", unsafe_allow_html=True)
+                            st.markdown(f"<div class='fe-sale-inline-label' style='margin-top:12px;'>{_vm} Ledger :</div>", unsafe_allow_html=True)
                         with _sl_f:
                             _all_sl = [r[0] for r in conn.execute(
                                 "SELECT ledger_name FROM ledger_master ORDER BY ledger_name"
                             ).fetchall()]
                             _chose_sl = st.selectbox(
-                                "Sales Ledger chunein:",
+                                f"{_vm} Ledger chunein:",
                                 _all_sl,
                                 index=None,
                                 key=f"{_sale_pk}_sales_pick",
@@ -1927,9 +1933,10 @@ def render():
                                     (_sel_sales,),
                                 ).fetchone()[0]
                                 _sb_cur = float(_sb_open or 0) + float(_sb_dr or 0) - float(_sb_cr or 0)
+                                _sal_color = "#15803d" if not _is_purchase else ""
                                 st.markdown(
                                     f"<div class='fe-sale-bal-row fe-sale-plabel' style='font-size:12px;font-weight:400;'>Current Balance :"
-                                    f"<span class='fe-sale-cbalance' style='color:#15803d;font-size:12px;font-weight:400;'> {abs(_sb_cur):,.2f} Cr</span></div>",
+                                    f"<span class='fe-sale-cbalance' style='color:{_sal_color};font-size:12px;font-weight:400;'> {abs(_sb_cur):,.2f} {_acct_side}</span></div>",
                                     unsafe_allow_html=True,
                                 )
                     st.markdown(
@@ -1973,10 +1980,10 @@ def render():
                         with _ic[2]:
                             st.markdown(f"<div class='fe-item-fld' style='padding-top:6px;'>{html.escape(_im['tax'])}</div>", unsafe_allow_html=True)
                         with _ic[3]:
-                            _sqty = st.number_input("Qty", min_value=0.0, step=1.0, value=float(st.session_state.get(f"{_sale_pk}_qty_{_si}", 0.0)),
+                            _sqty = st.number_input("Qty", min_value=0.0, step=1.0, value=None,
                                                     format="%.2f", key=f"{_sale_pk}_qty_{_si}", label_visibility="collapsed")
                         with _ic[4]:
-                            _srt = st.number_input("Rate", min_value=0.0, step=0.01, value=float(st.session_state.get(f"{_sale_pk}_rate_{_si}", _im["rate"])),
+                            _srt = st.number_input("Rate", min_value=0.0, step=0.01, value=None,
                                                    format="%.2f", key=f"{_sale_pk}_rate_{_si}", label_visibility="collapsed")
                         _qtr = float(_sqty or 0)
                         _amt = round(_qtr * float(_srt or 0), 2)
@@ -2041,8 +2048,8 @@ def render():
                     _adj_row = st.columns([0.5, 2.4, 2.6])
                     with _adj_row[1]:
                         _round_off_val = st.number_input(
-                            "Round Off (₹)", min_value=0.0,
-                            value=float(st.session_state.get(f"{_sale_pk}_round_off", 0.0) or 0.0),
+                            "Round Off (₹)", min_value=-10000.0,
+                            value=None,
                             step=0.01, format="%.2f", key=f"{_sale_pk}_round_off")
                     _net_final = round(_net_amt + float(_round_off_val or 0), 2)
                     _round_diff = round(_net_final - _net_amt, 2)
@@ -2066,7 +2073,7 @@ def render():
                     _sale_existing = []
                     try:
                         _sale_existing = [str(r[0]) for r in conn.execute(
-                            "SELECT DISTINCT invoice_no FROM voucher_entries WHERE mode='Sale' "
+                            f"SELECT DISTINCT invoice_no FROM voucher_entries WHERE mode='{_vm}' "
                             "ORDER BY CAST(invoice_no AS INTEGER) DESC"
                         ).fetchall()]
                     except Exception:
@@ -2100,10 +2107,10 @@ def render():
                         _ln = str(_edit_pick)
                         _lrows = conn.execute(
                             "SELECT dr_cr, ledger_head, net_amount, entry_date FROM voucher_entries "
-                            "WHERE mode='Sale' AND invoice_no=? ORDER BY id ASC", (_ln,)
+                            f"WHERE mode='{_vm}' AND invoice_no=? ORDER BY id ASC", (_ln,)
                         ).fetchall()
-                        _lparty = next((r[1] for r in _lrows if str(r[0]).upper() == "DR"), None)
-                        _lsales = next((r[1] for r in _lrows if str(r[0]).upper() == "CR" and "GST" not in str(r[1]).upper() and str(r[1]).strip() not in ("CGST GST Output", "SGST GST Output", "IGST GST Output")), None)
+                        _lparty = next((r[1] for r in _lrows if str(r[0]).upper() == _pty_side.upper()), None)
+                        _lsales = next((r[1] for r in _lrows if str(r[0]).upper() == _acct_side.upper() and "GST" not in str(r[1]).upper() and str(r[1]).strip() not in ("CGST GST Output", "SGST GST Output", "IGST GST Output")), None)
                         _ldate = None
                         for r in _lrows:
                             _dstr = str(r[3] or "").strip() if len(r) > 3 else ""
@@ -2119,10 +2126,10 @@ def render():
                                     break
                         _litems = conn.execute(
                             "SELECT item_name, qty, rate FROM voucher_inventory_items "
-                            "WHERE mode='Sale' AND voucher_no=? ORDER BY id ASC", (_ln,)
+                            f"WHERE mode='{_vm}' AND voucher_no=? ORDER BY id ASC", (_ln,)
                         ).fetchall()
                         _lround = next(
-                            ((-1.0 if str(r[0]).upper() == "DR" else 1.0) * float(r[2] or 0))
+                            ((1.0 if (str(r[0]).upper() == "DR") == _is_purchase else -1.0) * float(r[2] or 0))
                             for r in _lrows if str(r[1]).strip() == "Rounding Off"
                         ) if any(str(r[1]).strip() == "Rounding Off" for r in _lrows) else 0.0
                         st.session_state["fe_sale_pending_load"] = {
@@ -2135,19 +2142,20 @@ def render():
                     if _del_existing_clicked and _sale_editing_no:
                         _dno = str(_sale_editing_no)
                         _drestore = conn.execute(
-                            "SELECT item_name, qty FROM voucher_inventory_items WHERE mode='Sale' AND voucher_no=?",
+                            f"SELECT item_name, qty FROM voucher_inventory_items WHERE mode='{_vm}' AND voucher_no=?",
                             (_dno,)
                         ).fetchall()
                         for dt, dq in _drestore:
                             conn.execute(
-                                "UPDATE inventory_item_master SET quantity = COALESCE(quantity,0) + ? WHERE item_name = ?",
+                                "UPDATE inventory_item_master SET quantity = COALESCE(quantity,0) {sign} ? WHERE item_name = ?".format(
+                                    sign="-" if _is_purchase else "+"),
                                 (float(dq or 0), dt)
                             )
-                        conn.execute("DELETE FROM voucher_inventory_items WHERE mode='Sale' AND voucher_no=?", (_dno,))
-                        conn.execute("DELETE FROM voucher_entries WHERE mode='Sale' AND invoice_no=?", (_dno,))
+                        conn.execute(f"DELETE FROM voucher_inventory_items WHERE mode='{_vm}' AND voucher_no=?", (_dno,))
+                        conn.execute(f"DELETE FROM voucher_entries WHERE mode='{_vm}' AND invoice_no=?", (_dno,))
                         conn.commit()
                         st.session_state["fe_sale_form_tok"] = _sale_tok + 1
-                        st.session_state["fe_flash"] = f"Sale Voucher #{_dno} delete ho gaya."
+                        st.session_state["fe_flash"] = f"{_vm} Voucher #{_dno} delete ho gaya."
                         st.rerun()
                     if _sale_clear_clicked:
                         st.session_state["fe_sale_form_tok"] = _sale_tok + 1
@@ -2163,23 +2171,20 @@ def render():
                         if not _sel_party:
                             st.error("Party A/c Name select karein.")
                         elif not _sel_sales:
-                            st.error("Sales Ledger select karein.")
+                            st.error(f"{_vm} Ledger select karein.")
                         elif not _valid_items:
                             st.error("Kam se kam ek item quantity ke saath chahiye.")
                         else:
                             _vno = _sale_editing_no if _sale_editing_no else str(_sale_next_no)
+                            _old_map = {}
                             if _sale_editing_no:
                                 _drestore = conn.execute(
-                                    "SELECT item_name, qty FROM voucher_inventory_items WHERE mode='Sale' AND voucher_no=?",
+                                    f"SELECT item_name, qty FROM voucher_inventory_items WHERE mode='{_vm}' AND voucher_no=?",
                                     (_vno,)
                                 ).fetchall()
-                                for dt, dq in _drestore:
-                                    conn.execute(
-                                        "UPDATE inventory_item_master SET quantity = COALESCE(quantity,0) + ? WHERE item_name = ?",
-                                        (float(dq or 0), dt)
-                                    )
-                                conn.execute("DELETE FROM voucher_inventory_items WHERE mode='Sale' AND voucher_no=?", (_vno,))
-                                conn.execute("DELETE FROM voucher_entries WHERE mode='Sale' AND invoice_no=?", (_vno,))
+                                _old_map = {str(dt or ""): float(dq or 0) for dt, dq in _drestore}
+                                conn.execute(f"DELETE FROM voucher_inventory_items WHERE mode='{_vm}' AND voucher_no=?", (_vno,))
+                                conn.execute(f"DELETE FROM voucher_entries WHERE mode='{_vm}' AND invoice_no=?", (_vno,))
                             _sale_date_str = _sale_dt.strftime("%d/%m/%Y")
                             _remarks_val = st.session_state.get("fe_remarks", "")
                             conn.execute(
@@ -2187,16 +2192,16 @@ def render():
                                 (mode, entry_date, invoice_no, dr_cr, ledger_head,
                                  invoice_amount, tds, net_amount, remarks, bill_ref)
                                 VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                                ("Sale", _sale_date_str, _vno, "Dr", _sel_party,
-                                 _net_final, 0.0, _net_final, _remarks_val, "SaleParty")
+                                (_vm, _sale_date_str, _vno, _pty_side, _sel_party,
+                                 _net_final, 0.0, _net_final, _remarks_val, f"{_vm}Party")
                             )
                             conn.execute(
                                 """INSERT INTO voucher_entries
                                 (mode, entry_date, invoice_no, dr_cr, ledger_head,
                                  invoice_amount, tds, net_amount, remarks, bill_ref)
                                 VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                                ("Sale", _sale_date_str, _vno, "Cr", _sel_sales,
-                                 _sale_item_total, 0.0, _sale_item_total, _remarks_val, "SaleSales")
+                                (_vm, _sale_date_str, _vno, _acct_side, _sel_sales,
+                                 _sale_item_total, 0.0, _sale_item_total, _remarks_val, f"{_vm}Sales")
                             )
                             for _grt in sorted(_tax_groups, reverse=True):
                                 if _grt <= 0 or _tax_groups[_grt] <= 0:
@@ -2208,8 +2213,8 @@ def render():
                                         (mode, entry_date, invoice_no, dr_cr, ledger_head,
                                          invoice_amount, tds, net_amount, remarks, bill_ref)
                                         VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                                        ("Sale", _sale_date_str, _vno, "Cr", "IGST GST Output",
-                                         _gst_amt, 0.0, _gst_amt, _remarks_val, "SaleGST")
+                                        (_vm, _sale_date_str, _vno, _gst_side, "IGST GST Output",
+                                         _gst_amt, 0.0, _gst_amt, _remarks_val, f"{_vm}GST")
                                     )
                                     used_ledger = "IGST GST Output"
                                 else:
@@ -2220,26 +2225,26 @@ def render():
                                         (mode, entry_date, invoice_no, dr_cr, ledger_head,
                                          invoice_amount, tds, net_amount, remarks, bill_ref)
                                         VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                                        ("Sale", _sale_date_str, _vno, "Cr", "CGST GST Output",
-                                         _cgst_amt, 0.0, _cgst_amt, _remarks_val, "SaleGST")
+                                        (_vm, _sale_date_str, _vno, _gst_side, "CGST GST Output",
+                                         _cgst_amt, 0.0, _cgst_amt, _remarks_val, f"{_vm}GST")
                                     )
                                     conn.execute(
                                         """INSERT INTO voucher_entries
                                         (mode, entry_date, invoice_no, dr_cr, ledger_head,
                                          invoice_amount, tds, net_amount, remarks, bill_ref)
                                         VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                                        ("Sale", _sale_date_str, _vno, "Cr", "SGST GST Output",
-                                         _sgst_amt, 0.0, _sgst_amt, _remarks_val, "SaleGST")
+                                        (_vm, _sale_date_str, _vno, _gst_side, "SGST GST Output",
+                                         _sgst_amt, 0.0, _sgst_amt, _remarks_val, f"{_vm}GST")
                                     )
                             if _round_diff != 0:
-                                _rd_drcr = "Cr" if _round_diff > 0 else "Dr"
+                                _rd_drcr = "Cr" if (float(_round_diff) > 0) != _is_purchase else "Dr"
                                 conn.execute(
                                     """INSERT INTO voucher_entries
                                     (mode, entry_date, invoice_no, dr_cr, ledger_head,
                                      invoice_amount, tds, net_amount, remarks, bill_ref)
                                     VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                                    ("Sale", _sale_date_str, _vno, _rd_drcr, "Rounding Off",
-                                     abs(_round_diff), 0.0, abs(_round_diff), _remarks_val, "SaleGST")
+                                    (_vm, _sale_date_str, _vno, _rd_drcr, "Rounding Off",
+                                     abs(_round_diff), 0.0, abs(_round_diff), _remarks_val, f"{_vm}GST")
                                 )
                             for _row in _valid_items:
                                 _uv = _row[1].get("unit") if _row[1] else ""
@@ -2247,16 +2252,19 @@ def render():
                                     """INSERT INTO voucher_inventory_items
                                     (voucher_no, mode, entry_date, item_name, unit, qty, rate, amount)
                                     VALUES (?,?,?,?,?,?,?,?)""",
-                                    (_vno, "Sale", _sale_date_str, _row[0], _uv, _row[2], _row[3], _row[4])
+                                    (_vno, _vm, _sale_date_str, _row[0], _uv, _row[2], _row[3], _row[4])
                                 )
+                                _newq = float(_row[2] or 0)
+                                _oldq = _old_map.get(_row[0], 0.0) if _sale_editing_no else 0.0
+                                _inv_delta = (_newq if _is_purchase else -_newq) - (_oldq if _is_purchase else -_oldq)
                                 conn.execute(
-                                    "UPDATE inventory_item_master SET quantity = COALESCE(quantity,0) - ? WHERE item_name = ?",
-                                    (float(_row[2] or 0), _row[0])
+                                    "UPDATE inventory_item_master SET quantity = COALESCE(quantity,0) + ? WHERE item_name = ?",
+                                    (_inv_delta, _row[0])
                                 )
                             conn.commit()
                             st.session_state["fe_sale_form_tok"] = _sale_tok + 1
                             st.session_state["fe_flash"] = (
-                                f"Sale Voucher #{_vno} {'updated' if _sale_editing_no else 'saved'} successfully — form clear ho gaya."
+                                f"{_vm} Voucher #{_vno} {'updated' if _sale_editing_no else 'saved'} successfully — form clear ho gaya."
                             )
                             st.rerun()
                     st.markdown("---")
