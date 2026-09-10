@@ -9,6 +9,103 @@ import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
 from shared_helpers import *
+
+# ==============================================================================
+# HUNDI / BILL OF EXCHANGE HELPERS
+# ==============================================================================
+def _fy_suffix(d):
+    """Financial year suffix like 2026-27 for a date."""
+    if d.month >= 4:
+        return f"{d.year}-{str(d.year + 1)[-2:]}"
+    return f"{d.year - 1}-{str(d.year)[-2:]}"
+
+def _fmt_inr(amount):
+    """Format amount in Indian style: 9,74,894.00"""
+    v = float(amount or 0.0)
+    neg = "-" if v < 0 else ""
+    v = abs(round(v, 2))
+    rupees = int(v)
+    paise = int(round((v - rupees) * 100))
+    s = str(rupees)
+    if len(s) <= 3:
+        body = s
+    else:
+        head, tail = s[:-3], s[-3:]
+        parts = []
+        while len(head) > 2:
+            parts.insert(0, head[-2:])
+            head = head[:-2]
+        parts.insert(0, head)
+        body = ",".join(parts) + "," + tail
+    return f"{neg}{body}.{paise:02d}"
+
+_H_ONES = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+           "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+           "Seventeen", "Eighteen", "Nineteen"]
+_H_TENS = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+def _h_two_words(n):
+    if n < 20:
+        return _H_ONES[n]
+    return (_H_TENS[n // 10] + (" " + _H_ONES[n % 10] if n % 10 else ""))
+
+def _h_indian_words(n):
+    words = []
+    crore = n // 10000000
+    n %= 10000000
+    lakh = n // 100000
+    n %= 100000
+    thousand = n // 1000
+    n %= 1000
+    if crore:
+        words.append(_h_indian_words(crore) + " Crore")
+    if lakh:
+        words.append(_h_two_words(lakh) + " Lakh")
+    if thousand:
+        words.append(_h_two_words(thousand) + " Thousand")
+    if n >= 100:
+        words.append(_H_ONES[n // 100] + " Hundred")
+        n %= 100
+    if n:
+        words.append(_h_two_words(n))
+    return " ".join(words) or "Zero"
+
+def _rupees_words(amount):
+    """Amount in Indian English words e.g. 'Nine Lakh Seventy Four Thousand...Only'"""
+    v = float(amount or 0.0)
+    rupees = int(abs(v))
+    paise = int(round((abs(v) - rupees) * 100))
+    text = _h_indian_words(rupees)
+    if paise:
+        text = f"{text} and {_h_indian_words(paise)} Paise"
+    return f"{text} Only"
+
+def _next_hundi_no(conn, date_obj):
+    """Next Bill of Exchange number: 085/2026-27 se continue; naye FY me 01/fy se reset."""
+    fy = _fy_suffix(date_obj)
+    try:
+        rows = conn.execute(
+            "SELECT bill_no FROM hundi_entries WHERE bill_no LIKE ?",
+            (f"%/{fy}",),
+        ).fetchall()
+    except Exception:
+        rows = []
+    nums = []
+    for r in rows:
+        pre = str(r[0]).split("/")[0]
+        if pre.isdigit() and int(pre) > 0:
+            nums.append(int(pre))
+    if nums:
+        nxt = max(nums) + 1
+    elif fy == "2026-27":
+        # Current financial year ka bill book 085/2026-27 se shuru hota hai.
+        nxt = 85
+    else:
+        # Naye financial year me numbering 01 se reset hoti hai.
+        nxt = 1
+    width = 3 if fy == "2026-27" else max(2, len(str(nxt)))
+    return f"{nxt:0{width}d}/{fy}"
+
 def render():
     st.markdown("<h2 class='section-header'>📚 Financial Statement</h2>", unsafe_allow_html=True)
     render_financial_year_control()
@@ -474,33 +571,120 @@ def render():
             st.subheader("Company Letterhead")
             st.caption(
                 "Letterhead + Bill of Exchange (Hundi) ek hi A4 page me print hota hai. "
-                f"Bank: **{hundi_bank}** (sample bill data)."
+                f"Bank: **{hundi_bank}**. Invoice Camlin sale invoice se select karein — "
+                "Bill No. auto-continues (085/2026-27 se) aur date/amount invoice se auto-fetch hote hain."
             )
 
-            hd = {
-                "bill_no": "084/2026-27",
-                "bill_date": "04-09-2026",
-                "due_date": "03-12-2026",
-                "amount": "9,74,894.00",
-                "amount_words": "Nine Lakh Seventy Four Thousand Eight Hundred Ninety Four Only",
-                "days": "90",
-                "invoices": [
-                    ("SPC/26-27/33", "04-09-2026", "9,74,894.00"),
-                ],
-            }
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS hundi_entries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    bill_no TEXT,
+                    bank TEXT,
+                    invoice_no TEXT,
+                    invoice_date TEXT,
+                    invoice_amount REAL,
+                    days INTEGER,
+                    due_date TEXT,
+                    party TEXT,
+                    created_at TEXT DEFAULT (datetime('now'))
+                )
+            """)
+            conn.commit()
+
+            camlin_invoices = conn.execute("""
+                SELECT invoice_no,
+                       MIN(entry_date) AS inv_date,
+                       SUM(COALESCE(invoice_amount, 0)) AS inv_amt
+                FROM voucher_entries
+                WHERE LOWER(TRIM(ledger_head)) = 'kukuyo camlin ltd.'
+                  AND UPPER(TRIM(mode)) IN ('SALE', 'RECEIVED')
+                  AND COALESCE(invoice_no, '') <> ''
+                GROUP BY invoice_no
+                ORDER BY inv_date DESC, invoice_no DESC
+            """).fetchall()
+
             bank_full = {
                 "MUZUHO": "MIZUHO Bank Ltd.",
                 "SUMITOMO": "Sumitomo Mitsui Banking Corporation",
             }[hundi_bank]
 
-            inv_rows = ""
-            for inv_no, inv_date, inv_amt in hd["invoices"]:
-                inv_rows += (
-                    f"<tr><td>{inv_no}</td><td>{inv_date}</td>"
-                    f"<td>Rs. {inv_amt}</td></tr>"
+            if not camlin_invoices:
+                st.info(
+                    "₹ Camlin (Kukuyo Camlin Ltd.) ki koi Sale invoice voucher_entries me nahi mili. "
+                    "Hundi banane se pehle Camlin sale invoice entry karein."
+                )
+                hd = {"invoices": []}
+            else:
+                sel_inv_map = {str(r[0]): (str(r[1]) or "", float(r[2] or 0.0)) for r in camlin_invoices}
+                inv_choices = [str(r[0]) for r in camlin_invoices]
+
+                cA, cB = st.columns(2)
+                with cA:
+                    sel_inv_no = st.selectbox("Select Camlin Invoice No.", inv_choices, key="hundi_sel_invoice")
+                with cB:
+                    days = st.number_input("Days (Bill of Exchange)", min_value=1, max_value=365, value=90, step=5, key="hundi_days")
+
+                inv_date_raw, inv_amount = sel_inv_map[sel_inv_no]
+                inv_date_obj = parse_date_input(inv_date_raw) or datetime.date.today()
+                due_obj = inv_date_obj + datetime.timedelta(days=int(days))
+                inv_date_disp = inv_date_raw.replace("/", "-") if "/" in inv_date_raw else inv_date_raw
+                due_disp = due_obj.strftime("%d-%m-%Y")
+                next_no = _next_hundi_no(conn, inv_date_obj)
+
+                st.caption(
+                    f"🔢 Next Bill of Exchange No.: **{next_no}** &nbsp;·&nbsp; "
+                    f"📅 Invoice Date: **{inv_date_disp}** &nbsp;·&nbsp; "
+                    f"💰 Invoice Amount: **Rs. {_fmt_inr(inv_amount)}** &nbsp;·&nbsp; "
+                    f"🗓️ Due Date: **{due_disp}**"
                 )
 
-            boe_html = f"""
+                if st.button(f"💾 Generate & Save Hundi — {next_no}", type="primary", key="hundi_generate_save"):
+                    conn.execute(
+                        "INSERT INTO hundi_entries (bill_no, bank, invoice_no, invoice_date, invoice_amount, days, due_date, party) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                        (next_no, hundi_bank, sel_inv_no, inv_date_disp, float(inv_amount), int(days), due_disp, "Kokuyo Camlin Limited"),
+                    )
+                    conn.commit()
+                    st.success(f"Hundi {next_no} save ho gayi. Agli Hundi ka number apne aap continue hoga.")
+                    st.rerun()
+
+                with st.expander("🗂️ Saved Hundi History"):
+                    saved_rows = conn.execute(
+                        "SELECT id, bill_no, bank, invoice_no, invoice_date, invoice_amount, due_date "
+                        "FROM hundi_entries ORDER BY id DESC LIMIT 15"
+                    ).fetchall()
+                    if saved_rows:
+                        st.dataframe(
+                            pd.DataFrame(
+                                saved_rows,
+                                columns=["ID", "Bill No.", "Bank", "Invoice No.", "Invoice Date", "Invoice Amount", "Due Date"],
+                            ),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+                    else:
+                        st.caption("Abhi koi hundi save nahi hui.")
+
+                hd = {
+                    "bill_no": next_no,
+                    "bill_date": inv_date_disp,
+                    "due_date": due_disp,
+                    "amount": _fmt_inr(inv_amount),
+                    "amount_words": _rupees_words(inv_amount),
+                    "days": str(int(days)),
+                    "invoices": [
+                        (sel_inv_no, inv_date_disp, _fmt_inr(inv_amount)),
+                    ],
+                }
+
+                inv_rows = ""
+                for inv_no, inv_date, inv_amt in hd["invoices"]:
+                    inv_rows += (
+                        f"<tr><td>{inv_no}</td><td>{inv_date}</td>"
+                        f"<td>Rs. {inv_amt}</td></tr>"
+                    )
+
+                boe_html = f"""
 <div class='lh-body'>
   <div class='h-title'>Bill of Exchange<span class='h-titlebar'></span></div>
 
@@ -693,7 +877,7 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
     <span class='lh-flc'>✦&nbsp;&nbsp;✦&nbsp;&nbsp;✦</span>
     <span class='lh-fll'></span>
   </div>
-  """ + boe_html + """
+  """ + (boe_html if camlin_invoices else "") + """
   <div class='lh-ft'>
     <div class='lh-ftrow'>
       <span><svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='#b8860b' stroke-width='2'><rect x='3' y='5' width='18' height='14' rx='2'/><path d='M3 7l9 6 9-6'/></svg>email : subhpaperslg@gmail.com</span>
@@ -706,7 +890,8 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   </div>
 </div>"""
 
-            components.html(lh_html, height=1180, scrolling=True)
+            if camlin_invoices:
+                components.html(lh_html, height=1180, scrolling=True)
 
         # ======================================================================
         # TAB 4: ACCOUNTING (Day Book, Ledger, Others)
