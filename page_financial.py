@@ -504,6 +504,7 @@ def render():
 <div class='lh-body'>
   <div class='h-title'>Bill of Exchange<span class='h-titlebar'></span></div>
 
+  <div class='h-work'>
   <div class='h-fields'>
   <div class='f-group'>
   <div class='frow'>
@@ -534,6 +535,7 @@ def render():
       </thead>
       <tbody>{inv_rows}</tbody>
     </table>
+  </div>
   </div>
 
   <div class='h-bottom'>
@@ -607,7 +609,8 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .f-val { text-align: left; font-size: 14pt; font-weight: 600; color: #123b5e; white-space: nowrap; }
   .h-par { font-size: inherit; line-height: 1.5; color: #26313c; text-align: justify;
       margin: 20px 80px 14px; }
-  .tbl-wrap { margin: 0 80px; }
+  .h-work { display: flex; flex-direction: column; }
+  .tbl-wrap { margin: 7px 80px 0; }
   .inv-tbl { width: 100%; border-collapse: collapse; font-size: 14pt; }
   .inv-tbl th, .inv-tbl td { border: 1px solid #6b7680; padding: 5px 6px; text-align: center; }
   .inv-tbl th { background: #123b5e; color: #f4e8c8; font-weight: 600; letter-spacing: .5px; }
