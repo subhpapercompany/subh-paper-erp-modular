@@ -476,7 +476,7 @@ def render():
 
             lh_html = """<link href='https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Jost:wght@400;500;600&display=swap' rel='stylesheet'>
 <style>
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body { margin: 0; font-family: "Jost", "Segoe UI", Arial, sans-serif; background: #dfe6ec; }
   .lh-page {
       width: 794px; height: 1123px; margin: 20px auto; display: flex; flex-direction: column;
@@ -521,8 +521,8 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
       @page { size: A4 portrait; margin: 0; }
       html, body { width: 210mm; height: 297mm; margin: 0; padding: 0; background: #fff; }
       .lh-page { width: 210mm; height: 297mm; min-height: 0; margin: 0; overflow: hidden;
-          border-radius: 0; border: 2px solid #c9a94e; box-shadow: none;
-          padding: 10mm 9mm 7mm 9mm; background: #fffdf6; }
+          border-radius: 0; border: 2px solid #c9a94e; border-top: 7px solid #123b5e;
+          box-shadow: none; padding: 10mm 9mm 7mm 9mm; background: #fffdf6; }
       .lh-hd { flex-wrap: wrap; row-gap: 8px; }
       .lh-name { font-size: 22px; letter-spacing: 1.5px; white-space: normal; }
       .lh-tagline { font-size: 10px; letter-spacing: 1.5px; }
