@@ -621,7 +621,7 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .inv-tbl th { background: #123b5e; color: #f4e8c8; font-weight: 600; letter-spacing: .5px; }
   .inv-tbl td { color: #26313c; }
   .h-bottom { display: flex; flex-direction: column; }
-  .h-note { margin: 0 80px 14px; font-style: normal; font-weight: 700; color: #5a5548; line-height: 1.5; font-size: inherit; }
+  .h-note { margin: 0 80px 110px; font-style: normal; font-weight: 700; color: #5a5548; line-height: 1.5; font-size: inherit; }
   .h-foot { display: flex; justify-content: space-between; align-items: flex-start; margin: 0 80px 0; }
   .to-block { font-size: 14pt; color: #26313c; line-height: 1.5; }
   .h-accept-block { display: flex; flex-direction: column; margin-top: 24px; }
