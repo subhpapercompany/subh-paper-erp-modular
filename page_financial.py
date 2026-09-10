@@ -505,6 +505,7 @@ def render():
   <div class='h-title'>Bill of Exchange</div>
   <div class='h-titlebar'></div>
 
+  <div class='f-group'>
   <div class='frow'>
     <span class='f-lbl'>Number of Bill of Exchange</span><span class='f-colon'>:</span><span class='f-val'>{hd['bill_no']}</span>
   </div>
@@ -517,6 +518,7 @@ def render():
   <div class='frow'>
     <span class='f-lbl'>Amount of Bill of Exchange</span><span class='f-colon'>:</span><span class='f-val'>Rs. {hd['amount']}</span>
   </div>
+</div>
 
   <p class='h-par'>
     At {hd['days']} days from the date of Bill of Exchange (including the days of grace, if any),
@@ -595,8 +597,9 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .h-titlebar { width: 180px; height: 3px; margin: 12px auto 14px auto;
       background: linear-gradient(90deg, #c9a94e, #fff3d0, #c9a94e); }
   .frow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
-      margin: 0 80px 7px; }
-  .f-lbl { text-align: left; font-weight: 600; font-size: 14pt; color: #2f4453; }
+      margin: 0 80px 6px; }
+  .f-row:last-child { margin-bottom: 0; }
+  .f-lbl { text-align: left; font-weight: 600; font-size: inherit; color: #2f4453; }
   .f-colon { margin: 0 12px; font-weight: 700; font-size: 16pt; color: #123b5e; text-align: center; }
   .f-val { text-align: left; font-size: 14pt; font-weight: 600; color: #123b5e; white-space: nowrap; }
   .h-par { font-size: inherit; line-height: 1.5; color: #26313c; text-align: justify;
@@ -613,7 +616,7 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .h-signline { display: inline-block; text-align: right; margin: 0 80px 0 auto; }
   .sign-top { display: block; font-size: 14pt; font-weight: 600; color: #123b5e; }
   .sign-gap { display: block; height: 28px; }
-  .sign-role { font-size: 13.5pt; color: #3a4a56; display: block; }
+  .sign-role { color: #3a4a56; display: block; }
   .lh-ft { flex: none; border-top: 2px solid #c9a94e; padding-top: 8px; }
   .lh-ftrow { display: flex; align-items: center; justify-content: space-between; gap: 10px;
       font-size: 11.5px; color: #24404f; }
