@@ -504,6 +504,7 @@ def render():
 <div class='lh-body'>
   <div class='h-title'>Bill of Exchange<span class='h-titlebar'></span></div>
 
+  <div class='h-fields'>
   <div class='f-group'>
   <div class='frow'>
     <span class='f-lbl'>Number of Bill of Exchange</span><span class='f-colon'>:</span><span class='f-val'>{hd['bill_no']}</span>
@@ -524,6 +525,7 @@ def render():
     <b>Pay to {bank_full}</b> the sum of <b>Rs. {hd['amount']}</b>
     (Rupees {hd['amount_words']}) in full payment of value received against the following invoice(s):-
   </p>
+  </div>
 
   <div class='tbl-wrap'>
     <table class='inv-tbl'>
@@ -596,6 +598,7 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .h-title { text-align: center; font-family: "Playfair Display", Georgia, serif; font-size: 16px; font-weight: 700; color: #123b5e; letter-spacing: 4px; text-transform: uppercase; margin-top: 40px; display: flex; flex-direction: column; align-items: center; }
   .h-titlebar { display: block; width: 180px; height: 3px; margin: 6px auto 0 auto;
       background: linear-gradient(90deg, #c9a94e, #fff3d0, #c9a94e); }
+  .h-fields { display: flex; flex-direction: column; }
   .frow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
       margin: 0 80px 6px; }
   .f-row:last-child { margin-bottom: 0; }
