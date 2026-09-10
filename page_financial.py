@@ -476,73 +476,105 @@ def render():
 
             lh_html = """<link href='https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Jost:wght@400;500;600&display=swap' rel='stylesheet'>
 <style>
-  @media print { .lh-no-print { display:none !important; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Jost", "Segoe UI", Arial, sans-serif; background: #dfe6ec; }
+  .lh-page {
+      width: 794px; height: 1123px; margin: 20px auto; display: flex; flex-direction: column;
+      background: linear-gradient(180deg, #fffdf6 0%, #fbf5e6 100%);
+      border: 2px solid #c9a94e; border-top: 7px solid #123b5e; border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(18, 59, 94, .28);
+      padding: 28px 32px 22px 32px; position: relative;
+  }
+  .lh-hd { display: flex; align-items: center; gap: 20px; flex: none; }
+  .lh-logo { flex: none; width: 82px; height: 82px; position: relative; }
+  .lh-ring { position: absolute; inset: 0; border-radius: 50%;
+      background: conic-gradient(from 0deg, rgba(201,169,78,0), rgba(201,169,78,.55), rgba(201,169,78,0), rgba(201,169,78,.55), rgba(201,169,78,0)); }
+  .lh-core { position: absolute; inset: 6px; border-radius: 50%;
+      background: linear-gradient(140deg, #123b5e, #1f6a9b); border: 2px solid #c9a94e;
+      display: flex; align-items: center; justify-content: center;
+      font-family: "Playfair Display", Georgia, serif; font-size: 30px; font-weight: 700; color: #e9c567; }
+  .lh-mid { flex: 1; min-width: 0; }
+.lh-name { font-family: "Playfair Display", Georgia, serif; font-size: 26px; font-weight: 700;
+color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
+      text-shadow: 0 1px 0 #fff, 0 2px 0 #e9c567; }
+  .lh-tagrow { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .lh-tagline { white-space: normal; font-size: 10px; letter-spacing: 2px; color: #a07c2a; font-weight: 600; }
+  .lh-flank { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #c9a94e); }
+  .lh-flank.r { background: linear-gradient(90deg, #c9a94e, transparent); }
+  .lh-panel { flex: none; width: 236px; background: #f6eecd; border: 1px solid #dcc68c;
+      border-left: 4px solid #123b5e; border-radius: 6px; padding: 11px 13px; white-space: nowrap; }
+  .lh-p { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #2f4453; }
+  .lh-p + .lh-p { margin-top: 6px; }
+  .lh-p b { color: #b8860b; }
+  .lh-gst { font-size: 12.5px; color: #123b5e; font-weight: 600; letter-spacing: .4px; }
+  .lh-flourish { flex: none; display: flex; align-items: center; gap: 12px; margin: 20px 0 0 0; }
+  .lh-fll { flex: 1; height: 0; border-top: 1px solid #dcc68c; }
+  .lh-flc { font-size: 13px; color: #c9a94e; letter-spacing: 6px; }
+  .lh-body { flex: 1; }
+  .lh-ft { flex: none; border-top: 2px solid #c9a94e; padding-top: 13px; }
+  .lh-ftrow { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      font-size: 11.5px; color: #24404f; }
+  .lh-ftrow span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .lh-ftrow .sep { color: #c9a94e; font-weight: 700; }
+  .lh-ftaddr { text-align: center; font-size: 12.5px; font-weight: 600; color: #24404f; margin-top: 9px; letter-spacing: .3px; }
+  @media print {
+      @page { size: A4 portrait; margin: 12mm; }
+      html, body { height: 100%; background: #fff; }
+      .lh-page { width: 100%; height: 100%; min-height: 0; margin: 0; border-radius: 0;
+          border: 2px solid #c9a94e; box-shadow: none; padding: 8px 10px; background: #fffdf6; }
+      .lh-name { font-size: 24px; letter-spacing: 2px; }
+      .lh-tagline { white-space: nowrap; font-size: 9px; letter-spacing: 2px; }
+      .lh-panel { width: 220px; }
+      .lh-no-print { display: none !important; }
+  }
 </style>
-<div style='margin:0; font-family:"Jost","Segoe UI",Arial,sans-serif;'>
-<div class='lh-card' style='width:100%; background: linear-gradient(180deg,#fffdf6 0%, #fbf5e6 100%);
-    border: 2px solid #c9a94e; border-top: 7px solid #123b5e; border-radius: 10px; position: relative;
-    box-shadow: 0 10px 30px rgba(18,59,94,.25), inset 0 0 14px rgba(201,169,78,.18);
-    padding: 4px;'>
-  <div style='border: 1px solid #e3d2a0; border-radius: 7px; padding: 20px 24px 12px 24px; position: relative;'>
-    <!-- corner ornaments -->
-    <div style='position:absolute; top:6px; left:10px; color:#c9a94e; font-size:16px;'>✦</div>
-    <div style='position:absolute; top:6px; right:10px; color:#c9a94e; font-size:16px;'>✦</div>
-
-    <div style='display:flex; align-items:center; gap:18px;'>
-      <!-- Logo -->
-      <div style='flex:none; position:relative; width:76px; height:76px;'>
-        <div style='position:absolute; inset:0; border-radius:50%;
-            background: conic-gradient(from 0deg, rgba(201,169,78,.0), rgba(201,169,78,.55), rgba(201,169,78,0), rgba(201,169,78,.55), rgba(201,169,78,0));'></div>
-        <div style='position:absolute; inset:5px; border-radius:50%; background: linear-gradient(140deg,#123b5e,#1f6a9b);
-            border:2px solid #c9a94e; display:flex; align-items:center; justify-content:center;
-            font-family:"Playfair Display",Georgia,serif; font-size:29px; font-weight:700; color:#e9c567;'>SP</div>
-      </div>
-      <!-- Name + Tagline -->
-      <div style='flex:1; min-width:0;'>
-        <div style='font-family:"Playfair Display",Georgia,serif; font-size:30px; font-weight:700; color:#123b5e;
-            letter-spacing:3px; line-height:1.0; text-shadow: 0 1px 0 #fff, 0 2px 0 #e9c567;'>SUBH PAPER&nbsp;COMPANY</div>
-        <div style='display:flex; align-items:center; gap:10px; margin-top:9px;'>
-          <span style='flex:1; height:1px; background:linear-gradient(90deg, transparent, #c9a94e);'></span>
-          <span style='font-size:11px; letter-spacing:3.5px; color:#a07c2a; font-weight:600; white-space:nowrap;'>MANUFACTURER &amp; EXPORTER OF NOTEBOOKS &amp; PAPER PRODUCTS</span>
-          <span style='flex:1; height:1px; background:linear-gradient(90deg, #c9a94e, transparent);'></span>
-        </div>
-      </div>
-      <!-- Right Info Panel -->
-      <div style='flex:none; width:228px; background:#f6eecd; border:1px solid #dcc68c; border-left:4px solid #123b5e;
-          border-radius:6px; padding:10px 12px;'>
-        <div style='font-size:12.5px; color:#123b5e; font-weight:600; letter-spacing:.4px;'>GST No. : <b style='color:#b8860b;'>19AFLFS3701G1ZW</b></div>
-        <div style='margin-top:7px; display:flex; align-items:center; gap:6px; font-size:12px; color:#2f4453;'>
-          <svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='#123b5e' stroke-width='2'><circle cx='12' cy='12' r='9'/><path d='M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z'/></svg>
-          <a href='https://www.subhpapercompany.com' target='_blank' style='text-decoration:none; color:#123b5e; font-weight:600;'>www.subhpapercompany.com</a>
-        </div>
-        <div style='margin-top:5px; display:flex; align-items:center; gap:6px; font-size:12px; color:#2f4453;'>
-          <svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='#123b5e' stroke-width='2'><rect x='3' y='5' width='18' height='14' rx='2'/><path d='M3 7l9 6 9-6'/></svg>
-          <span style='color:#123b5e; font-weight:600;'>email : subhpaperslg@gmail.com</span>
-        </div>
+<div class='lh-no-print' style='text-align:center; margin: 6px auto 0 auto;'>
+  <button onclick='window.print()' style='padding:10px 28px; font-size:14px; font-weight:600; cursor:pointer;
+      background:linear-gradient(135deg,#123b5e,#1f6a9b); color:#fff; border:none; border-radius:6px;
+      border-bottom:3px solid #0a2740;'>Print Letterhead (A4 Portrait)</button>
+</div>
+<div class='lh-page'>
+  <div class='lh-hd'>
+    <div class='lh-logo'><div class='lh-ring'></div><div class='lh-core'>SP</div></div>
+    <div class='lh-mid'>
+      <div class='lh-name'>SUBH PAPER COMPANY</div>
+      <div class='lh-tagrow'>
+        <span class='lh-flank'></span>
+        <span class='lh-tagline'>MANUFACTURER &amp; EXPORTER OF NOTEBOOKS &amp; PAPER PRODUCTS</span>
+        <span class='lh-flank r'></span>
       </div>
     </div>
-
-    <!-- Flourish divider -->
-    <div style='display:flex; align-items:center; gap:12px; margin:18px 0 13px 0;'>
-      <span style='flex:1; height:0; border-top:1px solid #dcc68c;'></span>
-      <span style='flex:none; font-size:13px; color:#c9a94e;'>✦ &nbsp;✦&nbsp; ✦</span>
-      <span style='flex:1; height:0; border-top:1px solid #dcc68c;'></span>
-    </div>
-
-    <!-- Address -->
-    <div style='text-align:center; font-size:13px; color:#24404f; letter-spacing:.4px; padding-bottom:4px;'>
-      <b>A14, Fulbari Industrial Park, Chobavita, Jalpaiguri, West Bengal. Pin - 734015</b>
+    <div class='lh-panel'>
+      <div class='lh-gst'>GST No. : <b>19AFLFS3701G1ZW</b></div>
+      <div class='lh-p'>
+        <svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='#123b5e' stroke-width='2'><circle cx='12' cy='12' r='9'/><path d='M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z'/></svg>
+        <a href='https://www.subhpapercompany.com' target='_blank' style='text-decoration:none; color:#123b5e; font-weight:600;'>www.subhpapercompany.com</a>
+      </div>
+      <div class='lh-p'>
+        <svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='#123b5e' stroke-width='2'><rect x='3' y='5' width='18' height='14' rx='2'/><path d='M3 7l9 6 9-6'/></svg>
+        <span style='color:#123b5e; font-weight:600;'>email : subhpaperslg@gmail.com</span>
+      </div>
     </div>
   </div>
-</div>
-<div class='lh-no-print' style='text-align:center; margin-top:10px;'>
-  <button onclick='window.print()' style='padding:9px 24px; font-size:13px; font-weight:600; cursor:pointer;
-      background:linear-gradient(135deg,#123b5e,#1f6a9b); color:#fff; border:none; border-radius:6px;
-      border-bottom:3px solid #0a2740;'>Print Letterhead</button>
-</div>
+  <div class='lh-flourish'>
+    <span class='lh-fll'></span>
+    <span class='lh-flc'>✦&nbsp;&nbsp;✦&nbsp;&nbsp;✦</span>
+    <span class='lh-fll'></span>
+  </div>
+  <div class='lh-body'></div>
+  <div class='lh-ft'>
+    <div class='lh-ftrow'>
+      <span><svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='#b8860b' stroke-width='2'><rect x='3' y='5' width='18' height='14' rx='2'/><path d='M3 7l9 6 9-6'/></svg>email : subhpaperslg@gmail.com</span>
+      <span class='sep'>|</span>
+      <span><svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='#b8860b' stroke-width='2'><circle cx='12' cy='12' r='9'/><path d='M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z'/></svg>www.subhpapercompany.com</span>
+      <span class='sep'>|</span>
+      <span style='font-weight:600;'>GST No. : 19AFLFS3701G1ZW</span>
+    </div>
+    <div class='lh-ftaddr'>A14, Fulbari Industrial Park, Chobavita, Jalpaiguri, West Bengal. Pin - 734015</div>
+  </div>
 </div>"""
 
-            components.html(lh_html, height=310, scrolling=True)
+            components.html(lh_html, height=1180, scrolling=True)
 
         # ======================================================================
         # TAB 4: ACCOUNTING (Day Book, Ledger, Others)
