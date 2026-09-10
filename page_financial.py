@@ -613,7 +613,7 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .f-val { text-align: left; font-size: 14pt; font-weight: 600; color: #123b5e; white-space: nowrap; }
   .h-par { font-size: inherit; line-height: 1.5; color: #26313c; text-align: justify;
       margin: 20px 80px 14px; }
-  .h-main { display: flex; flex-direction: column; }
+  .h-main { display: flex; flex-direction: column; margin-top: 20px; }
   .h-work { display: flex; flex-direction: column; }
   .tbl-wrap { margin: 7px 80px 22px; }
   .inv-tbl { width: 100%; border-collapse: collapse; font-size: 14pt; }
