@@ -450,6 +450,49 @@ def fetch_book_wt_index(product_code):
     except Exception:
         return None
 
+def fetch_book_weight_full(product_code):
+    """Return the 'Book Wt' (col K) from Book Weight.xlsx sheet 'BOOK WT'.
+
+    Mirrors fetch_book_wt_index but reads the per-book weight column instead of
+    the Index Book Wt column.
+    """
+    code = str(product_code or "").strip()
+    if not code:
+        return None
+    try:
+        _here = os.path.dirname(os.path.abspath(__file__))
+        book_path = next(
+            (p for p in [
+                "Book Weight.xlsx",
+                "book weight.xlsx",
+                os.path.join(_here, "Book Weight.xlsx"),
+                os.path.join(os.path.dirname(_here), "Book Weight.xlsx"),
+                os.path.join("master_data", "Book Weight.xlsx"),
+            ] if os.path.exists(p)),
+            None,
+        )
+        if not book_path:
+            return None
+        book_df = pd.read_excel(book_path, sheet_name="BOOK WT", header=1)
+        barcode_col = next(
+            (c for c in book_df.columns if str(c).strip() == "Barcodes"), None
+        )
+        weight_col = next(
+            (c for c in book_df.columns if str(c).strip() == "Book Wt"), None
+        )
+        if barcode_col is None or weight_col is None:
+            return None
+        book_df[barcode_col] = book_df[barcode_col].astype(str).str.replace(r"\.0$", "", regex=True).str.strip()
+        match = book_df[book_df[barcode_col] == code]
+        if match.empty:
+            return None
+        value = match.iloc[0][weight_col]
+        if value is None or str(value).strip() == "":
+            return None
+        return float(value)
+    except Exception:
+        return None
+
 def fetch_po_request_case_qty(conn, product_code, order_month=None):
     """Return PO Request Report column 10 (Case Qty) for the matching product.
 

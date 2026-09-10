@@ -1372,6 +1372,8 @@ def render():
         c10.number_input("Making Charges", min_value=0.0, step=0.01, value=making_charges, format="%.2f", key="prod_making_charges_calc")
 
         # Tab 5 formulas for Book Weight / Paper Consumption / Board Consumption.
+        # Book Weight is now taken from Book Weight.xlsx col K when available.
+        fetched_book_weight = fetch_book_weight_full(prod_code) if prod_code else None
         if prod_code and production_qty is not None:
             book_weight, paper_consumption, calculated_board_size, board_consumption = fetch_production_tab5_calculations(
                 conn, prod_code, production_qty
@@ -1379,9 +1381,13 @@ def render():
             book_weight = float(book_weight)
             paper_consumption = float(paper_consumption)
             board_consumption = float(board_consumption)
+            if fetched_book_weight is not None:
+                book_weight = fetched_book_weight
         else:
             book_weight = paper_consumption = board_consumption = None
             calculated_board_size = None
+            if fetched_book_weight is not None:
+                book_weight = fetched_book_weight
         st.session_state["prod_book_weight"] = book_weight
         st.session_state["prod_paper_consumption"] = paper_consumption
         st.session_state["prod_board_consumption"] = board_consumption
