@@ -553,6 +553,7 @@ def render():
   </div>
   </div>
 
+  <div class='h-accept-block'>
   <div class='h-acceptline'>Accepted and payable on due date at Mumbai.</div>
 
   <div class='h-signline'>
@@ -560,6 +561,7 @@ def render():
     <span class='sign-gap'></span>
     <span class='sign-role'>Manager</span>
   </div>
+</div>
 </div>"""
 
             lh_html = """<link href='https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Jost:wght@400;500;600&display=swap' rel='stylesheet'>
@@ -598,7 +600,7 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .lh-flourish { flex: none; display: flex; align-items: center; gap: 12px; margin: 8px 0 0 0; }
   .lh-fll { flex: 1; height: 0; border-top: 1px solid #dcc68c; }
   .lh-flc { font-size: 13px; color: #c9a94e; letter-spacing: 6px; }
-  .lh-body { flex: 1; display: flex; flex-direction: column; min-height: 0; justify-content: space-between; }
+  .lh-body { flex: 1; display: flex; flex-direction: column; min-height: 0; justify-content: flex-start; }
   .h-title { text-align: center; font-family: "Playfair Display", Georgia, serif; font-size: 16px; font-weight: 700; color: #123b5e; letter-spacing: 4px; text-transform: uppercase; margin-top: 40px; display: flex; flex-direction: column; align-items: center; }
   .h-titlebar { display: block; width: 180px; height: 3px; margin: 6px auto 0 auto;
       background: linear-gradient(90deg, #c9a94e, #fff3d0, #c9a94e); }
@@ -622,10 +624,11 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .h-note { margin: 0 80px 14px; font-style: normal; font-weight: 700; color: #5a5548; line-height: 1.5; font-size: inherit; }
   .h-foot { display: flex; justify-content: space-between; align-items: flex-start; margin: 0 80px 0; }
   .to-block { font-size: 14pt; color: #26313c; line-height: 1.5; }
-  .h-acceptline { margin: 6px 80px 12px; font-size: 13.5pt; font-style: italic; color: #4c463a; }
+  .h-accept-block { display: flex; flex-direction: column; margin-top: 24px; }
+  .h-acceptline { margin: 6px 80px 10px; font-style: italic; color: #4c463a; }
   .h-signline { display: inline-block; text-align: right; margin: 0 80px 0 auto; }
-  .sign-top { display: block; font-size: 14pt; font-weight: 600; color: #123b5e; }
-  .sign-gap { display: block; height: 28px; }
+  .sign-top { display: block; font-weight: 600; color: #123b5e; }
+  .sign-gap { display: block; height: 20px; }
   .sign-role { color: #3a4a56; display: block; }
   .lh-ft { flex: none; border-top: 2px solid #c9a94e; padding-top: 8px; }
   .lh-ftrow { display: flex; align-items: center; justify-content: space-between; gap: 10px;
