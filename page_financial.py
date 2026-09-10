@@ -584,6 +584,124 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
 
             components.html(lh_html, height=1180, scrolling=True)
 
+            st.divider()
+            st.subheader("Bill of Exchange (Hundi) Form")
+            st.caption(
+                f"Bank: **{hundi_bank}** — form neeche dikh raha hai (sample bill data). "
+                "Aage DB se auto-fill hoga."
+            )
+
+            hd = {
+                "bill_no": "084/2026-27",
+                "bill_date": "04-09-2026",
+                "due_date": "03-12-2026",
+                "amount": "9,74,894.00",
+                "amount_words": "Nine Lakh Seventy Four Thousand Eight Hundred Ninety Four Only",
+                "days": "90",
+                "invoices": [
+                    ("SPC/26-27/33", "04-09-2026", "9,74,894.00"),
+                ],
+            }
+            bank_full = {
+                "MUZUHO": "MIZUHO Bank Ltd.",
+                "SUMITOMO": "Sumitomo Mitsui Banking Corporation",
+            }[hundi_bank]
+
+            inv_rows = ""
+            for inv_no, inv_date, inv_amt in hd["invoices"]:
+                inv_rows += (
+                    f"<tr><td>{inv_no}</td><td>{inv_date}</td>"
+                    f"<td>Rs. {inv_amt}</td></tr>"
+                )
+
+            h_html = f"""<link href='https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Jost:wght@400;500;600&display=swap' rel='stylesheet'>
+<style>
+  * {{ box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }}
+  body {{ margin: 0; font-family: "Jost", "Segoe UI", Arial, sans-serif; background: #dfe6ec; }}
+  .h-page {{ width: 794px; margin: 16px auto; background: #fdfcf9; border: 1px solid #b9a25e;
+      border-top: 6px solid #123b5e; border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(18, 59, 94, .25); padding: 34px 38px 30px 38px; }}
+  .h-title {{ text-align: center; font-family: "Playfair Display", Georgia, serif; font-size: 26px;
+      font-weight: 700; color: #123b5e; letter-spacing: 4px; text-transform: uppercase; }}
+  .h-titlebar {{ width: 170px; height: 3px; margin: 8px auto 24px auto;
+      background: linear-gradient(90deg, #c9a94e, #fff3d0, #c9a94e); }}
+  .field {{ display: flex; align-items: baseline; margin-bottom: 10px; }}
+  .f-label {{ width: 290px; font-weight: 600; color: #2f4453; font-size: 13.5px; }}
+  .f-dots {{ flex: 1; border-bottom: 1px dotted #8a8271; margin: 0 10px; transform: translateY(-3px); }}
+  .f-val {{ font-size: 14px; font-weight: 600; color: #123b5e; white-space: nowrap; }}
+  .h-par {{ font-size: 13.5px; line-height: 1.6; color: #26313c; text-align: justify; margin: 8px 0 16px 0; }}
+  .inv-tbl {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+  .inv-tbl th {{ background: #123b5e; color: #f4e8c8; padding: 8px 10px; text-align: left; font-weight: 600; letter-spacing: .5px; }}
+  .inv-tbl th:nth-child(3) {{ text-align: right; }}
+  .inv-tbl td {{ padding: 8px 10px; border-bottom: 1px solid #e0d6b8; }}
+  .inv-tbl td:nth-child(3) {{ text-align: right; font-weight: 600; }}
+  .inv-tbl tr:nth-child(even) {{ background: #faf6ea; }}
+  .h-note {{ margin: 18px 0 6px 0; font-size: 12.5px; font-style: italic; color: #5a5548;
+      border-top: 1px dashed #cbbf9a; padding-top: 12px; line-height: 1.5; }}
+  .h-foot {{ display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; }}
+  .to-block {{ font-size: 13.5px; color: #26313c; line-height: 1.6; }}
+  .accept {{ margin-top: 12px; font-size: 12.5px; color: #4c463a; font-style: italic; }}
+  .sign-block {{ text-align: right; }}
+  .sign-top {{ font-size: 14px; font-weight: 600; color: #123b5e; }}
+  .sign-gap {{ height: 56px; }}
+  .sign-role {{ font-size: 13px; color: #3a4a56; }}
+  .bo-no-print {{ display: block; }}
+  @media print {{
+      @page {{ size: A4 portrait; margin: 0; }}
+      html, body {{ width: 210mm; margin: 0; padding: 0; background: #fff; }}
+      .h-page {{ width: 210mm; margin: 0; border-radius: 0; border: 1px solid #b9a25e;
+          border-top: 6px solid #123b5e; box-shadow: none; padding: 12mm 11mm 10mm 11mm; }}
+      .bo-no-print {{ display: none !important; }}
+  }}
+</style>
+<div class='bo-no-print' style='text-align:center; margin-bottom:10px;'>
+  <button onclick='window.print()' style='padding:10px 28px; font-size:14px; font-weight:600; cursor:pointer;
+      background:linear-gradient(135deg,#123b5e,#1f6a9b); color:#fff; border:none; border-radius:6px;
+      border-bottom:3px solid #0a2740;'>Print Hundi Form (A4 Portrait)</button>
+</div>
+<div class='h-page'>
+  <div class='h-title'>Bill of Exchange</div>
+  <div class='h-titlebar'></div>
+
+  <div class='field'><span class='f-label'>Number of Bill of Exchange</span><span class='f-dots'></span><span class='f-val'>: {hd['bill_no']}</span></div>
+  <div class='field'><span class='f-label'>Date of Bill of Exchange</span><span class='f-dots'></span><span class='f-val'>: {hd['bill_date']}</span></div>
+  <div class='field'><span class='f-label'>Due Date of Bill of Exchange</span><span class='f-dots'></span><span class='f-val'>: {hd['due_date']}</span></div>
+  <div class='field'><span class='f-label'>Amount of Bill of Exchange</span><span class='f-dots'></span><span class='f-val'>: Rs. {hd['amount']}</span></div>
+
+  <p class='h-par'>
+    At {hd['days']} days from the date of Bill of Exchange (including the days of grace, if any),
+    <b>Pay to {bank_full}</b> the sum of <b>Rs. {hd['amount']}</b>
+    (Rupees {hd['amount_words']}) in full payment of value received against the following invoice(s):-
+  </p>
+
+  <table class='inv-tbl'>
+    <thead>
+      <tr><th>INVOICE NO.</th><th>INVOICE DATE</th><th>INVOICE AMOUNT (RS.)</th></tr>
+    </thead>
+    <tbody>{inv_rows}</tbody>
+  </table>
+
+  <div class='h-note'>Presentment, protest and notice of dishonor waived by all parties entitled to require for the same.</div>
+
+  <div class='h-foot'>
+    <div class='to-block'>
+      To,<br/>
+      Kokuyo Camlin Limited,<br/>
+      48/2, Hilton House,<br/>
+      MIDC, Andheri (East),<br/>
+      Mumbai - 400093.<br/>
+      <div class='accept'>Accepted and payable on due date at Mumbai.</div>
+    </div>
+    <div class='sign-block'>
+      <div class='sign-top'>For, Subh Paper Company</div>
+      <div class='sign-gap'></div>
+      <div class='sign-role'>Manager</div>
+    </div>
+  </div>
+</div>"""
+
+            components.html(h_html, height=700, scrolling=True)
+
         # ======================================================================
         # TAB 4: ACCOUNTING (Day Book, Ledger, Others)
         # ======================================================================
