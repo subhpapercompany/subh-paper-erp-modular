@@ -518,10 +518,11 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .lh-ftrow .sep { color: #c9a94e; font-weight: 700; }
   .lh-ftaddr { text-align: center; font-size: 12.5px; font-weight: 600; color: #24404f; margin-top: 9px; letter-spacing: .3px; }
   @media print {
-      @page { size: A4 portrait; margin: 10mm; }
-      html, body { width: 100%; height: 100%; background: #fff; }
-      .lh-page { width: 100%; height: 1047px; min-height: 0; margin: 0; overflow: hidden;
-          border-radius: 0; border: 2px solid #c9a94e; box-shadow: none; padding: 6px 8px; background: #fffdf6; }
+      @page { size: A4 portrait; margin: 0; }
+      html, body { width: 210mm; height: 297mm; margin: 0; padding: 0; background: #fff; }
+      .lh-page { width: 210mm; height: 297mm; min-height: 0; margin: 0; overflow: hidden;
+          border-radius: 0; border: 2px solid #c9a94e; box-shadow: none;
+          padding: 10mm 9mm 7mm 9mm; background: #fffdf6; }
       .lh-hd { flex-wrap: wrap; row-gap: 8px; }
       .lh-name { font-size: 22px; letter-spacing: 1.5px; white-space: normal; }
       .lh-tagline { font-size: 10px; letter-spacing: 1.5px; }
@@ -535,6 +536,10 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   <button onclick='window.print()' style='padding:10px 28px; font-size:14px; font-weight:600; cursor:pointer;
       background:linear-gradient(135deg,#123b5e,#1f6a9b); color:#fff; border:none; border-radius:6px;
       border-bottom:3px solid #0a2740;'>Print Letterhead (A4 Portrait)</button>
+  <div style='margin:6px auto 0 auto; font-size:12px; color:#7a6a3a; max-width:560px; text-align:center;'>
+    Print dialog me <b>Margins: None</b> aur <b>Header &amp; Footer: off</b> karein —
+    output bilkul preview (A4 page) jaisa hi milega.
+  </div>
 </div>
 <div class='lh-page'>
   <div class='lh-hd'>
