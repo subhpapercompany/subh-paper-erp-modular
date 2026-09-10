@@ -92,8 +92,8 @@ def render():
 
     if financial_report == "Financial Entry Report":
         # Create 3 tabs: Camlin, Open Advance, Accounting
-        camlin_tab, open_advance_tab, accounting_tab = st.tabs([
-            "Camlin", "Open Advance", "Accounting"
+        camlin_tab, open_advance_tab, hundi_tab, accounting_tab = st.tabs([
+            "Camlin", "Open Advance", "HUNDI", "Accounting"
         ])
         
         # ======================================================================
@@ -454,7 +454,27 @@ def render():
                         st.info("No Open Advance entries found for the selected date range.")
         
         # ======================================================================
-        # TAB 3: ACCOUNTING (Day Book, Ledger, Others)
+        # TAB 3: HUNDI REPORT
+        # ======================================================================
+        with hundi_tab:
+            st.markdown("### Hundi Report")
+
+            h1, h2 = st.columns([1, 2])
+            with h1:
+                hundi_bank = st.selectbox(
+                    "Select Hundi Bank",
+                    ["MUZUHO", "SUMITOMO"],
+                    key="hundi_bank"
+                )
+            with h2:
+                st.caption(
+                    f"Selected Bank: **{hundi_bank}** — is bank ki hundi activity yahan dikhegi."
+                )
+
+            st.info("Hundi report section ready. Report format bataiye (date range, columns), main tab me add karta hu.")
+
+        # ======================================================================
+        # TAB 4: ACCOUNTING (Day Book, Ledger, Others)
         # ======================================================================
         with accounting_tab:
             st.markdown("### Accounting Reports")
