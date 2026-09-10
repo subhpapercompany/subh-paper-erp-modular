@@ -471,7 +471,66 @@ def render():
                     f"Selected Bank: **{hundi_bank}** — is bank ki hundi activity yahan dikhegi."
                 )
 
-            st.info("Hundi report section ready. Report format bataiye (date range, columns), main tab me add karta hu.")
+            st.subheader("Company Letterhead")
+            st.caption("Yeh letterhead report/print ke liye hai — professional & stylish heading.")
+
+            lh_html = """<div style='font-family: "Segoe UI", Arial, sans-serif; margin: 0;'>
+<div style='width: 100%; background: #fff; border: 1.5px solid #b8953e;
+            border-top: 5px solid #0e3a5c; border-radius: 6px; overflow: hidden;
+            box-shadow: 0 6px 22px rgba(14,58,92,.22);'>
+  <div style='padding: 22px 26px 14px 26px;'>
+    <table width='100%' cellspacing='0' cellpadding='0' style='border-collapse: collapse;'>
+      <tr>
+        <td width='70%' style='vertical-align: middle;'>
+          <div style='display: inline-flex; align-items: center; gap: 14px;'>
+            <div style='width: 62px; height: 62px; border-radius: 50%;
+                        background: linear-gradient(140deg, #0e3a5c, #1a5e8c);
+                        color: #e9c567; display: flex; align-items: center; justify-content: center;
+                        font-family: Georgia, serif; font-size: 26px; font-weight: 700;
+                        border: 2px solid #e9c567; letter-spacing: 1px;'>SP</div>
+            <div>
+              <div style='font-family: Georgia, serif; font-size: 27px; font-weight: 700;
+                          color: #0e3a5c; letter-spacing: 3px; line-height: 1.05;'>SUBH PAPER&nbsp;COMPANY</div>
+              <div style='font-size: 10.5px; letter-spacing: 4.5px; color: #8a7440; margin-top: 5px;
+                          font-weight: 600;'>MANUFACTURER &amp; EXPORTER OF NOTEBOOKS &amp; PAPER PRODUCTS</div>
+            </div>
+          </div>
+        </td>
+        <td width='30%' style='vertical-align: middle; text-align: right;'>
+          <div style='font-size: 12px; color: #0e3a5c; font-weight: 700; letter-spacing: .4px;'>
+            GST No. : <span style='color: #b8953e;'>19AFLFS3701G1ZW</span></div>
+          <div style='margin-top: 6px; font-size: 11.5px; color: #3d4f5c; display: inline-flex;
+                      align-items: center; gap: 5px;'>
+            <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='#0e3a5c' stroke-width='2'>
+              <circle cx='12' cy='12' r='9'/><path d='M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9S14.5 18.4 12 21c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z'/>
+            </svg>
+            <a href='https://www.subhpapercompany.com' target='_blank'
+               style='text-decoration:none; color:#0e3a5c; font-weight:600;'>www.subhpapercompany.com</a>
+          </div>
+          <div style='margin-top: 5px; font-size: 11.5px; color: #3d4f5c; display: inline-flex;
+                      align-items: center; gap: 5px;'>
+            <svg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='#0e3a5c' stroke-width='2'>
+              <rect x='3' y='5' width='18' height='14' rx='2'/><path d='M3 7l9 6 9-6'/>
+            </svg>
+            <span style='color:#0e3a5c; font-weight:600;'>email : subhpaperslg@gmail.com</span>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td colspan='2'>
+          <div style='border-top: 2px solid #b8953e; margin: 16px 0 12px 0;'></div>
+          <div style='border-top: 1px solid #e5d7ae; margin-top: -13px;'></div>
+          <div style='text-align: center; font-size: 12px; color: #2b3a45; letter-spacing: .3px;'>
+            <b>A14, Fulbari Industrial Park, Chobavita, Jalpaiguri, West Bengal. Pin - 734015</b>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
+</div>"""
+
+            components.html(lh_html, height=235, scrolling=True)
 
         # ======================================================================
         # TAB 4: ACCOUNTING (Day Book, Ledger, Others)
