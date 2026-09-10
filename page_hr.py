@@ -1672,6 +1672,7 @@ def render():
                 "SELECT company_name, address1, address2, city, pincode, phone FROM company_master ORDER BY id LIMIT 1"
             ).fetchone()
             company_name = (company_row[0] if company_row and company_row[0] else "SUBH PAPER COMPANY").upper()
+            company_phone = (str(company_row[5]).strip() if company_row and company_row[5] and str(company_row[5]).strip() else "")
             company_address = ""
             if company_row:
                 company_address = ", ".join(
@@ -1680,8 +1681,6 @@ def render():
                         (company_row[4] if str(company_row[4]).strip() else "")
                     ] if p and str(p).strip()
                 )
-                if company_row[5] and str(company_row[5]).strip():
-                    company_address = f"{company_address}, Ph: {company_row[5]}"
 
             f1, f2 = st.columns([1.2, 1.2])
             with f1:
@@ -1741,27 +1740,79 @@ def render():
             from_show = (format_date(leave_from_date) if leave_from_date else "____/____/______")
             to_show = (format_date(leave_to_date) if leave_to_date else "____/____/______")
 
-            def _leave_app_html():
-                entries = [
-                    ("1. Name of Employee", name_show),
-                    ("2. From Date", from_show),
-                    ("3. To Date", to_show),
-                    ("4. Total Days", days_show),
-                ]
-                rows = "".join(
-                    f"<div class='row'><span class='k'>{k}</span><span class='v'>{v}</span></div>"
-                    for k, v in entries
+            def _leave_app_html(copy_label="ORIGINAL"):
+                purpose_val = (purpose_of_leave.strip().replace("_", "") if purpose_of_leave else "").strip()
+                rules_html = "".join(
+                    "<div class='rline'></div>" for _ in range(5)
+                )
+                purpose_overlay = (
+                    f"<div class='ptext'>{purpose_val}</div>" if purpose_val else ""
+                )
+                name_val = employee_name.strip().replace("_", "")
+                name_overlay = (
+                    f"<div class='wline'>{name_val}</div>" if name_val else
+                    f"<div class='wline wempty'></div>"
                 )
                 return f"""<div class='leave-app'>
-                <div class='comp'>{company_name}</div>
-                <div class='taddr'>{company_address}</div>
-                <div class='title'>LEAVE APPLICATION</div>
-                {rows}
-                <div class='row p-row'><span class='k'>5. Purpose of Leave Taken</span></div>
-                <div class='purpose'>{purpose_show}</div>
-                <div class='sign-row'>
-                <div class='sign-left'>Approval Executive</div>
-                <div class='sign-right'>Signature of Employee</div>
+                <div class='band'>
+                    <div class='mono'><span class='ml'>SP</span></div>
+                    <div class='bhead'>
+                        <div class='bname'>{company_name}</div>
+                        <div class='btag'>{company_address}</div>
+                    </div>
+                    <div class='bmeta'>
+                        <div class='bcopy'>{copy_label}</div>
+                        <div class='bphone'>{('Ph: ' + company_phone) if company_phone else ''}</div>
+                        <div class='bdept'>HUMAN RESOURCE DEPARTMENT</div>
+                    </div>
+                </div>
+                <div class='title'>
+                    <span class='tleft'></span>
+                    <span class='tmid'>Leave Application</span>
+                    <span class='tright'></span>
+                </div>
+                <div class='field name-field'>
+                    <div class='k'>1. Name of Employee</div>
+                    {name_overlay}
+                </div>
+                <div class='tri-row'>
+                    <div class='item'>
+                        <div class='k'>2. From Date</div>
+                        <div class='wline'>{from_show}</div>
+                    </div>
+                    <div class='item'>
+                        <div class='k'>3. To Date</div>
+                        <div class='wline'>{to_show}</div>
+                    </div>
+                    <div class='item item-days'>
+                        <div class='k'>4. Total Days</div>
+                        <div class='wline wdays'>{days_show}</div>
+                    </div>
+                </div>
+                <div class='purpose'>
+                    <div class='k'>5. Purpose of Leave Taken</div>
+                    <div class='rules'>{purpose_overlay}{rules_html}</div>
+                </div>
+                <div class='sign'>
+                    <div class='sbl'>
+                        <div class='slab'>Approval Executive</div>
+                        <div class='sgap'></div>
+                        <div class='sline'></div>
+                        <div class='snote'>(Authorised Signatory)</div>
+                    </div>
+                    <div class='sc'>
+                        <div class='slab'>Date</div>
+                        <div class='sgap'></div>
+                        <div class='sline'></div>
+                    </div>
+                    <div class='sbr'>
+                        <div class='slab'>Signature of Employee</div>
+                        <div class='sgap'></div>
+                        <div class='sline'></div>
+                    </div>
+                </div>
+                <div class='ffoot'>
+                    {company_name} - This is a system generated leave application record.
                 </div>
                 </div>"""
 
@@ -1770,43 +1821,84 @@ def render():
 <head>
 <meta charset='utf-8'>
 <style>
-    @page {{ size: A4 portrait; margin: 8mm; }}
+    @page {{ size: A4 portrait; margin: 9mm; }}
     * {{ box-sizing: border-box; }}
-    body {{ font-family: Arial, 'Times New Roman', sans-serif; margin: 0; color: #000; }}
+    body {{ font-family: 'Segoe UI', Arial, 'Times New Roman', sans-serif; margin: 0; color: #1a2733; }}
     .leave-app {{
-        border: 1.5px solid #000; padding: 10px 14px; height: 49.5%;
-        page-break-after: always; margin-bottom: 1.5vh; display: flex; flex-direction: column;
+        position: relative; height: 50%; display: flex; flex-direction: column;
+        background: #fdfcf9; border: 1.4px solid #b9c6cf; border-radius: 7px;
+        box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 3px #dbe4ea;
+        padding: 0 18px 10px 18px; overflow: hidden;
+        page-break-after: always; margin-bottom: 2mm;
     }}
     .leave-app:last-child {{ page-break-after: auto; }}
-    .comp {{ text-align: center; font-size: 17px; font-weight: 700; letter-spacing: 2px; }}
-    .taddr {{ text-align: center; font-size: 9.5px; margin-top: 2px; }}
-    .title {{ text-align: center; font-size: 13.5px; font-weight: 700; margin: 8px 0 10px; border-bottom: 1px solid #000; padding-bottom: 6px; letter-spacing: 1.5px; }}
-    .row {{ font-size: 12px; margin-bottom: 8px; display: flex; }}
-    .k {{ width: 42%; font-weight: 700; }}
-    .v {{ flex: 1; border-bottom: 1px dotted #000; min-height: 16px; padding: 0 4px; }}
-    .p-row .k {{ width: 100%; }}
-    .purpose {{ min-height: 52px; border-bottom: 1px dotted #000; font-size: 11.5px; padding: 2px 4px; margin-bottom: 8px; }}
-    .sign-row {{ margin-top: auto; display: flex; justify-content: space-between; padding-top: 4px; }}
-    .sign-left, .sign-right {{ width: 45%; text-align: center; border-top: 1px solid #000; padding-top: 4px; font-size: 11px; }}
+    .band {{ display: flex; align-items: center; gap: 12px;
+        background: linear-gradient(135deg, #0e3a5c 0%, #14507a 55%, #0e3a5c 100%);
+        color: #fff; margin: 0 -18px 0 -18px; padding: 10px 18px; }}
+    .mono {{ width: 44px; height: 44px; border-radius: 50%; border: 2px solid #e9c567;
+        display: flex; align-items: center; justify-content: center; flex: none; }}
+    .mono .ml {{ font-family: Georgia, serif; font-size: 17px; font-weight: 700; color: #e9c567; letter-spacing: 1px; }}
+    .bhead {{ flex: 1; min-width: 0; }}
+    .bname {{ font-family: Georgia, serif; font-size: 21px; font-weight: 700; letter-spacing: 2.5px; line-height: 1.1; }}
+    .btag {{ font-size: 9px; opacity: .92; margin-top: 2px; letter-spacing: .3px; }}
+    .bmeta {{ text-align: right; flex: none; font-size: 8.5px; line-height: 1.4; letter-spacing: .3px; }}
+    .bcopy {{ display: inline-block; background: #e9c567; color: #0e3a5c; font-weight: 800;
+        font-size: 8.5px; padding: 2px 10px; border-radius: 3px; letter-spacing: 1px; margin-bottom: 3px; }}
+    .title {{ display: flex; align-items: center; gap: 10px; margin: 13px 0 11px 0; }}
+    .tleft, .tright {{ flex: 1; height: 0; border-top: 1.5px solid #b9c6cf; }}
+    .tmid {{ font-family: Georgia, serif; font-size: 16px; font-weight: 700; color: #0e3a5c;
+        letter-spacing: 3.5px; text-transform: uppercase; }}
+    .field {{ margin-bottom: 12px; }}
+    .tri-row {{ display: flex; gap: 10px; margin-bottom: 12px; }}
+    .item {{ flex: 1; }}
+    .item-days {{ flex: 0 0 22%; }}
+    .k {{ font-size: 10px; font-weight: 700; color: #155e86; text-transform: uppercase;
+        letter-spacing: .8px; margin-bottom: 4px; }}
+    .wline {{ min-height: 36px; border-bottom: 2px solid #0e3a5c; padding: 5px 8px 2px 8px;
+        font-size: 13.5px; font-weight: 600; color: #0e3a5c; letter-spacing: .4px; }}
+    .wempty {{ background-image: repeating-linear-gradient(to bottom, transparent 0px, transparent 27px, #c9d6e0 27px, #c9d6e0 28px); }}
+    .wdays {{ font-weight: 800; text-align: center; }}
+    .purpose {{ margin-bottom: 8px; }}
+    .rules {{ position: relative; border: 1px solid #c4d2dc; border-radius: 4px;
+        background: #fff; min-height: 132px; }}
+    .rline {{ height: 26px; border-top: 1px solid #c4d2dc; margin: 0 6px; }}
+    .rline:last-child {{ border-bottom: none; }}
+    .rules .rline:first-of-type {{ border-color: transparent; }}
+    .ptext {{ position: absolute; top: 4px; left: 10px; right: 10px; font-size: 12.5px;
+        font-weight: 600; color: #0e3a5c; min-height: 20px; }}
+    .sign {{ margin-top: auto; display: flex; gap: 12px; padding-top: 6px; }}
+    .sbl, .sc, .sbr {{ flex: 1; text-align: center; }}
+    .slab {{ font-size: 10px; font-weight: 700; color: #155e86; text-transform: uppercase; letter-spacing: .8px; }}
+    .sgap {{ height: 40px; }}
+    .sline {{ border-top: 2px solid #0e3a5c; }}
+    .snote {{ font-size: 8px; color: #6b7a86; margin-top: 3px; font-style: italic; }}
+    .ffoot {{ margin-top: 8px; border-top: 1px solid #dbe4ea; padding-top: 4px;
+        font-size: 7.5px; color: #8a97a2; text-align: center; letter-spacing: .4px; }}
     @media print {{
         body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
         .no-print {{ display: none !important; }}
-        .leave-app {{ height: 49.5%; page-break-after: always; margin: 0; }}
+        .sheet {{ width: 100%; }}
+        .leave-app {{ height: 50%; page-break-after: always; margin: 0; box-shadow: none; }}
         .leave-app:last-child {{ page-break-after: auto; }}
     }}
     @media screen {{
-        body {{ background: #f2f2f2; }}
-        .sheet {{ width: 794px; height: 1123px; margin: 16px auto; background: #fff; padding: 24px; box-shadow: 0 4px 18px rgba(0,0,0,.25); }}
+        body {{ background: #dfe6ec; }}
+        .sheet {{ width: 794px; height: 1123px; margin: 18px auto; background: #fdfcf9;
+            padding: 20px 20px 6px 20px; border-radius: 6px;
+            box-shadow: 0 8px 28px rgba(14,58,92,.35); }}
     }}
 </style>
 </head>
 <body>
 <div class='no-print' style='text-align:center; margin: 14px auto;'>
-<button onclick='window.print()' style='padding: 10px 26px; font-size: 15px; font-weight: bold; cursor: pointer; background:#0f3460; color:#fff; border:none; border-radius:6px;'>🖨️ Print Leave Application</button>
+<div style='margin-bottom:8px; font-size:11px; color:#4b5a68;'>A4 portrait — har page par 2 applications (Original + Duplicate) print hongi. Form blank printed rahega, fields me haath se bhar sakte hain.</div>
+<button onclick='window.print()' style='padding: 12px 30px; font-size: 15px; font-weight: bold; cursor: pointer;
+    background: linear-gradient(135deg,#0e3a5c,#14507a); color:#fff; border:none; border-radius:7px;
+    border-bottom:3px solid #0a2c47;'>Print Leave Application</button>
 </div>
 <div class='sheet'>
-    {_leave_app_html()}
-    {_leave_app_html()}
+    {_leave_app_html("ORIGINAL")}
+    {_leave_app_html("DUPLICATE")}
 </div>
 </body>
 </html>"""
