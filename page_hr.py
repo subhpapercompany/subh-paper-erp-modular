@@ -1073,9 +1073,10 @@ def render():
     with hr_reporting_mode:
         st.markdown("### HR Reporting Mode")
         
-        wages_report_tab, payroll_report_tab = st.tabs([
+        wages_report_tab, payroll_report_tab, leave_app_tab = st.tabs([
             "💰 Wages Report",
-            "📊 Payroll Report"
+            "📊 Payroll Report",
+            "📝 Leave Application"
         ])
         
         # ----------------------------------------------------------------------
@@ -1660,5 +1661,160 @@ def render():
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     key="download_payroll_report"
                 )
+
+    # ----------------------------------------------------------------------
+    # LEAVE APPLICATION FORM
+    # ----------------------------------------------------------------------
+        with leave_app_tab:
+            st.markdown("#### 📝 LEAVE APPLICATION FORM")
+
+            company_row = hr_conn.execute(
+                "SELECT company_name, address1, address2, city, pincode, phone FROM company_master ORDER BY id LIMIT 1"
+            ).fetchone()
+            company_name = (company_row[0] if company_row and company_row[0] else "SUBH PAPER COMPANY").upper()
+            company_address = ""
+            if company_row:
+                company_address = ", ".join(
+                    str(p).strip() for p in [
+                        company_row[1], company_row[2], company_row[3],
+                        (company_row[4] if str(company_row[4]).strip() else "")
+                    ] if p and str(p).strip()
+                )
+                if company_row[5] and str(company_row[5]).strip():
+                    company_address = f"{company_address}, Ph: {company_row[5]}"
+
+            f1, f2 = st.columns([1.2, 1.2])
+            with f1:
+                employee_name = st.text_input(
+                    "1. Name of Employee",
+                    placeholder="Employee ka naam manually likhein",
+                    key="leave_employee_name"
+                )
+            with f2:
+                st.caption("(Manually type the employee name)")
+
+            d1, d2, d3 = st.columns([1, 1, 1])
+            with d1:
+                leave_from_date, leave_from_date_str = get_date_input(
+                    "2. From Date (DD/MM/YYYY)",
+                    "leave_from_date",
+                    default_value=(datetime.date.today()).strftime('%d/%m/%Y')
+                )
+            with d2:
+                leave_to_date, leave_to_date_str = get_date_input(
+                    "3. To Date (DD/MM/YYYY)",
+                    "leave_to_date",
+                    default_value=(datetime.date.today()).strftime('%d/%m/%Y')
+                )
+
+            total_leave_days = None
+            if leave_from_date and leave_to_date:
+                if leave_to_date < leave_from_date:
+                    st.error("To Date From Date se pehle nahi ho sakti.")
+                else:
+                    total_leave_days = (leave_to_date - leave_from_date).days + 1
+            with d3:
+                st.text_input(
+                    "4. Total Days",
+                    value=(str(total_leave_days) if total_leave_days is not None else ""),
+                    disabled=True,
+                    key="leave_total_days"
+                )
+
+            purpose_of_leave = st.text_area(
+                "5. Purpose of Leave Taken",
+                height=70,
+                placeholder="Leave lene ka karan likhein...",
+                key="leave_purpose"
+            )
+
+            st.caption("A4 portrait — har page me 2 (do) leave applications print hongi.")
+
+            if not employee_name.strip():
+                st.warning("Print karne se pehle 'Name of Employee' likhein.")
+            print_disabled = not bool(employee_name.strip())
+
+            filled_or_blank = "________________________"
+            name_show = employee_name.strip() or filled_or_blank
+            purpose_show = (purpose_of_leave.strip() if purpose_of_leave else "__________________________")
+            days_show = (str(total_leave_days) if total_leave_days is not None else "________")
+            from_show = (format_date(leave_from_date) if leave_from_date else "____/____/______")
+            to_show = (format_date(leave_to_date) if leave_to_date else "____/____/______")
+
+            def _leave_app_html():
+                entries = [
+                    ("1. Name of Employee", name_show),
+                    ("2. From Date", from_show),
+                    ("3. To Date", to_show),
+                    ("4. Total Days", days_show),
+                ]
+                rows = "".join(
+                    f"<div class='row'><span class='k'>{k}</span><span class='v'>{v}</span></div>"
+                    for k, v in entries
+                )
+                return f"""<div class='leave-app'>
+                <div class='comp'>{company_name}</div>
+                <div class='taddr'>{company_address}</div>
+                <div class='title'>LEAVE APPLICATION</div>
+                {rows}
+                <div class='row p-row'><span class='k'>5. Purpose of Leave Taken</span></div>
+                <div class='purpose'>{purpose_show}</div>
+                <div class='sign-row'>
+                <div class='sign-left'>Approval Executive</div>
+                <div class='sign-right'>Signature of Employee</div>
+                </div>
+                </div>"""
+
+            app_html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<style>
+    @page {{ size: A4 portrait; margin: 8mm; }}
+    * {{ box-sizing: border-box; }}
+    body {{ font-family: Arial, 'Times New Roman', sans-serif; margin: 0; color: #000; }}
+    .leave-app {{
+        border: 1.5px solid #000; padding: 10px 14px; height: 49.5%;
+        page-break-after: always; margin-bottom: 1.5vh; display: flex; flex-direction: column;
+    }}
+    .leave-app:last-child {{ page-break-after: auto; }}
+    .comp {{ text-align: center; font-size: 17px; font-weight: 700; letter-spacing: 2px; }}
+    .taddr {{ text-align: center; font-size: 9.5px; margin-top: 2px; }}
+    .title {{ text-align: center; font-size: 13.5px; font-weight: 700; margin: 8px 0 10px; border-bottom: 1px solid #000; padding-bottom: 6px; letter-spacing: 1.5px; }}
+    .row {{ font-size: 12px; margin-bottom: 8px; display: flex; }}
+    .k {{ width: 42%; font-weight: 700; }}
+    .v {{ flex: 1; border-bottom: 1px dotted #000; min-height: 16px; padding: 0 4px; }}
+    .p-row .k {{ width: 100%; }}
+    .purpose {{ min-height: 52px; border-bottom: 1px dotted #000; font-size: 11.5px; padding: 2px 4px; margin-bottom: 8px; }}
+    .sign-row {{ margin-top: auto; display: flex; justify-content: space-between; padding-top: 4px; }}
+    .sign-left, .sign-right {{ width: 45%; text-align: center; border-top: 1px solid #000; padding-top: 4px; font-size: 11px; }}
+    @media print {{
+        body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+        .no-print {{ display: none !important; }}
+        .leave-app {{ height: 49.5%; page-break-after: always; margin: 0; }}
+        .leave-app:last-child {{ page-break-after: auto; }}
+    }}
+    @media screen {{
+        body {{ background: #f2f2f2; }}
+        .sheet {{ width: 794px; height: 1123px; margin: 16px auto; background: #fff; padding: 24px; box-shadow: 0 4px 18px rgba(0,0,0,.25); }}
+    }}
+</style>
+</head>
+<body>
+<div class='no-print' style='text-align:center; margin: 14px auto;'>
+<button onclick='window.print()' style='padding: 10px 26px; font-size: 15px; font-weight: bold; cursor: pointer; background:#0f3460; color:#fff; border:none; border-radius:6px;'>🖨️ Print Leave Application</button>
+</div>
+<div class='sheet'>
+    {_leave_app_html()}
+    {_leave_app_html()}
+</div>
+</body>
+</html>"""
+
+            components.html(
+                app_html,
+                height=820,
+                scrolling=True
+            )
 
     hr_conn.close()
