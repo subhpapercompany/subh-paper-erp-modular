@@ -1682,76 +1682,11 @@ def render():
                     ] if p and str(p).strip()
                 )
 
-            f1, f2 = st.columns([1.2, 1.2])
-            with f1:
-                employee_name = st.text_input(
-                    "1. Name of Employee",
-                    placeholder="Employee ka naam manually likhein",
-                    key="leave_employee_name"
-                )
-            with f2:
-                st.caption("(Manually type the employee name)")
-
-            d1, d2, d3 = st.columns([1, 1, 1])
-            with d1:
-                leave_from_date, leave_from_date_str = get_date_input(
-                    "2. From Date (DD/MM/YYYY)",
-                    "leave_from_date",
-                    default_value=(datetime.date.today()).strftime('%d/%m/%Y')
-                )
-            with d2:
-                leave_to_date, leave_to_date_str = get_date_input(
-                    "3. To Date (DD/MM/YYYY)",
-                    "leave_to_date",
-                    default_value=(datetime.date.today()).strftime('%d/%m/%Y')
-                )
-
-            total_leave_days = None
-            if leave_from_date and leave_to_date:
-                if leave_to_date < leave_from_date:
-                    st.error("To Date From Date se pehle nahi ho sakti.")
-                else:
-                    total_leave_days = (leave_to_date - leave_from_date).days + 1
-            with d3:
-                st.text_input(
-                    "4. Total Days",
-                    value=(str(total_leave_days) if total_leave_days is not None else ""),
-                    disabled=True,
-                    key="leave_total_days"
-                )
-
-            purpose_of_leave = st.text_area(
-                "5. Purpose of Leave Taken",
-                height=70,
-                placeholder="Leave lene ka karan likhein...",
-                key="leave_purpose"
-            )
-
-            st.caption("A4 portrait — har page me 2 (do) leave applications print hongi.")
-
-            if not employee_name.strip():
-                st.warning("Print karne se pehle 'Name of Employee' likhein.")
-            print_disabled = not bool(employee_name.strip())
-
-            filled_or_blank = "________________________"
-            name_show = employee_name.strip() or filled_or_blank
-            purpose_show = (purpose_of_leave.strip() if purpose_of_leave else "__________________________")
-            days_show = (str(total_leave_days) if total_leave_days is not None else "________")
-            from_show = (format_date(leave_from_date) if leave_from_date else "____/____/______")
-            to_show = (format_date(leave_to_date) if leave_to_date else "____/____/______")
+            st.caption("A4 portrait — har page par 2 blank leave applications (Original + Duplicate) print hongi. Fields haath se bhare jayenge.")
 
             def _leave_app_html(copy_label="ORIGINAL"):
-                purpose_val = (purpose_of_leave.strip().replace("_", "") if purpose_of_leave else "").strip()
                 rules_html = "".join(
                     "<div class='rline'></div>" for _ in range(5)
-                )
-                purpose_overlay = (
-                    f"<div class='ptext'>{purpose_val}</div>" if purpose_val else ""
-                )
-                name_val = employee_name.strip().replace("_", "")
-                name_overlay = (
-                    f"<div class='wline'>{name_val}</div>" if name_val else
-                    f"<div class='wline wempty'></div>"
                 )
                 return f"""<div class='leave-app'>
                 <div class='band'>
@@ -1773,25 +1708,25 @@ def render():
                 </div>
                 <div class='field name-field'>
                     <div class='k'>1. Name of Employee</div>
-                    {name_overlay}
+                    <div class='wline wempty'></div>
                 </div>
                 <div class='tri-row'>
                     <div class='item'>
                         <div class='k'>2. From Date</div>
-                        <div class='wline'>{from_show}</div>
+                        <div class='wline wempty'></div>
                     </div>
                     <div class='item'>
                         <div class='k'>3. To Date</div>
-                        <div class='wline'>{to_show}</div>
+                        <div class='wline wempty'></div>
                     </div>
                     <div class='item item-days'>
                         <div class='k'>4. Total Days</div>
-                        <div class='wline wdays'>{days_show}</div>
+                        <div class='wline wdays wempty'></div>
                     </div>
                 </div>
                 <div class='purpose'>
                     <div class='k'>5. Purpose of Leave Taken</div>
-                    <div class='rules'>{purpose_overlay}{rules_html}</div>
+                    <div class='rules'>{rules_html}</div>
                 </div>
                 <div class='sign'>
                     <div class='sbl'>
