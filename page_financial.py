@@ -502,8 +502,7 @@ def render():
 
             boe_html = f"""
 <div class='lh-body'>
-  <div class='h-title'>Bill of Exchange</div>
-  <div class='h-titlebar'></div>
+  <div class='h-title'>Bill of Exchange<span class='h-titlebar'></span></div>
 
   <div class='f-group'>
   <div class='frow'>
@@ -593,8 +592,8 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .lh-fll { flex: 1; height: 0; border-top: 1px solid #dcc68c; }
   .lh-flc { font-size: 13px; color: #c9a94e; letter-spacing: 6px; }
   .lh-body { flex: 1; display: flex; flex-direction: column; min-height: 0; justify-content: space-between; }
-  .h-title { text-align: center; font-family: "Playfair Display", Georgia, serif; font-size: 16px; font-weight: 700; color: #123b5e; letter-spacing: 4px; text-transform: uppercase; margin-top: 40px; }
-  .h-titlebar { width: 180px; height: 3px; margin: 12px auto 14px auto;
+  .h-title { text-align: center; font-family: "Playfair Display", Georgia, serif; font-size: 16px; font-weight: 700; color: #123b5e; letter-spacing: 4px; text-transform: uppercase; margin-top: 40px; display: flex; flex-direction: column; align-items: center; }
+  .h-titlebar { display: block; width: 180px; height: 3px; margin: 6px auto 0 auto;
       background: linear-gradient(90deg, #c9a94e, #fff3d0, #c9a94e); }
   .frow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
       margin: 0 80px 6px; }
