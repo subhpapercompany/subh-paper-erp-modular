@@ -441,6 +441,8 @@ def render():
                 "paper_consumption": "REAL",
                 "board_size": "TEXT",
                 "board_consumption": "REAL",
+                "book_wt_index": "REAL",
+                "index_consumption": "REAL",
                 "remarks": "TEXT",
             },
             "despatch_form_entries": {
@@ -784,6 +786,8 @@ def render():
             ("paper_consumption", "Paper Consumption"),
             ("board_size", "Board Size"),
             ("board_consumption", "Board Consumption"),
+            ("book_wt_index", "Book Wt. (Index)"),
+            ("index_consumption", "Index Consumption"),
         ],
         "des_crud": [
             ("despatch_date", "Despatch Date"),
@@ -1322,6 +1326,8 @@ def render():
                 "prod_wip_type": None,
                 "prod_board_size": None,
                 "prod_wip_board": None,
+                "prod_book_wt_index_calc": None,
+                "prod_index_consumption_calc": None,
             }.items():
                 st.session_state[_reset_key] = _reset_value
 
@@ -1396,6 +1402,16 @@ def render():
         ).fetchall()})
         wip_board = c15.selectbox("WIP Board", wip_board_options, index=None, placeholder="Select WIP Board", key="prod_wip_board")
         board_consumption = c16.number_input("Board Consumption", min_value=0.0, step=0.001, value=board_consumption, format="%.3f", key="prod_board_consumption")
+
+        # Book Wt. (Index) is fetched from Book Weight.xlsx (col J) and editable;
+        # Index Consumption = Production Qty × Book Wt. (Index).
+        c17, c18, _, _, _ = st.columns(5)
+        book_wt_index = fetch_book_wt_index(prod_code) if prod_code else None
+        st.session_state["prod_book_wt_index_calc"] = book_wt_index
+        c17.number_input("Book Wt. (Index)", min_value=0.0, step=0.00001, value=book_wt_index, format="%.6f", key="prod_book_wt_index_calc")
+        index_consumption = (float(production_qty or 0) * float(book_wt_index or 0)) if production_qty is not None and book_wt_index is not None else None
+        st.session_state["prod_index_consumption_calc"] = index_consumption
+        c18.number_input("Index Consumption", min_value=0.0, step=0.00001, value=index_consumption, format="%.6f", key="prod_index_consumption_calc")
         sb1, sb2, _ = st.columns([1.0, 0.9, 2.0])
         with sb1:
             if st.button("💾 Save Production Entry", type="primary", key="save_production_entry", use_container_width=True):
@@ -1408,12 +1424,15 @@ def render():
                         """INSERT INTO production_form_entries
                         (production_date, production_month, product_code, ruling_type, page, book_size,
                          plan_qty, ok_notebook, rejection_qty, case_quantity, making_rate,
-                         making_charges, book_weight, wip_type, paper_consumption, board_size, wip_board, board_consumption)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                         making_charges, book_weight, wip_type, paper_consumption, board_size, wip_board, board_consumption,
+                         book_wt_index, index_consumption)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (prod_date_str, prod_month, prod_code, p_ruling, str(p_page), p_size,
                          str(production_qty), str(ok_notebook), str(rejection_qty), str(case_quantity),
                          float(making_rate), float(making_charges), float(book_weight),
-                         wip_type, float(paper_consumption), board_size, wip_board, float(board_consumption))
+                         wip_type, float(paper_consumption), board_size, wip_board, float(board_consumption),
+                         float(book_wt_index) if book_wt_index is not None else None,
+                         float(index_consumption) if index_consumption is not None else None)
                     )
                     conn.commit()
                     st.success("✅ Production Entry saved successfully.")
