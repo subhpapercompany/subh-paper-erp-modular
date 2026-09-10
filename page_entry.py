@@ -1811,7 +1811,7 @@ def render():
                     ("Payment", "F5 · Payment", "Cash/Bank se Payment (Bhugatan)"),
                     ("Receipt", "F6 · Receipt", "Cash/Bank me Receipt (Aamdani)"),
                     ("Contra", "F7 · Contra", "Cash ↔ Bank Transfer"),
-                    ("Sale", "F8 · Sale", "Bech (Sale) Voucher"),
+                    ("Sale", "F8 · Tax Invoice", "Tax Invoice Voucher"),
                     ("Purchase", "F9 · Purchase", "Khareed (Purchase) Voucher"),
                     ("Journal", "F10 · Journal", "General Ledger Adjustment"),
                 ]
@@ -1862,7 +1862,7 @@ def render():
                         st.success(_flash_msg)
                     st.markdown(f"""
                     <div class="fe-topbar">
-                        <div class="fe-brand">🧾 Financial Entry — {_vm}</div>
+                        <div class="fe-brand">🧾 Financial Entry — {'Tax Invoice' if _vm == 'Sale' else _vm}</div>
                         <div class="fe-company">🏢 SUBH PAPER COMPANY</div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -1904,10 +1904,11 @@ def render():
                                         st.session_state.pop(key, None)
                                 st.rerun()
                         with no_col:
-                            st.markdown(
-                                f"<span class='tally-avc-type-sm'>{_vm}&nbsp;&nbsp;No.&nbsp;:</span>"
-                                f"<span class='fe-sale-auto-no'><b>{_sale_display_no}</b></span>",
-                                unsafe_allow_html=True
+                            _sale_manual_no = st.text_input(
+                                "Tax Invoice No.",
+                                value=str(_sale_editing_no) if _sale_editing_no else "",
+                                placeholder=f"e.g. {_sale_next_no}",
+                                key=f"{_sale_pk}_manual_no",
                             )
                     with cr:
                         _sale_def_date = st.session_state.get(f"{_sale_pk}_date") or datetime.date.today()
@@ -2372,7 +2373,7 @@ def render():
                         elif not _valid_items:
                             st.error("Kam se kam ek item quantity ke saath chahiye.")
                         else:
-                            _vno = _sale_editing_no if _sale_editing_no else str(_sale_next_no)
+                            _vno = _sale_editing_no if _sale_editing_no else (_sale_manual_no.strip() if _sale_manual_no and _sale_manual_no.strip() else str(_sale_next_no))
                             _old_map = {}
                             if _sale_editing_no:
                                 _drestore = conn.execute(
@@ -2460,8 +2461,9 @@ def render():
                                 )
                             conn.commit()
                             st.session_state["fe_sale_form_tok"] = _sale_tok + 1
+                            _vm_label = "Tax Invoice" if _vm == "Sale" else _vm
                             st.session_state["fe_flash"] = (
-                                f"{_vm} Voucher #{_vno} {'updated' if _sale_editing_no else 'saved'} successfully — form clear ho gaya."
+                                f"{_vm_label} #{_vno} {'updated' if _sale_editing_no else 'saved'} successfully — form clear ho gaya."
                             )
                             st.rerun()
                     st.markdown("---")
@@ -2870,7 +2872,7 @@ def render():
                         c1, c2, c3, c4, c5, c6, c7 = st.columns([0.85, 0.95, 0.95, 2.3, 1.0, 1.0, 1.7])
                         c1.markdown(f"<div class='fe-reg-cell'>{html.escape(str(group['date'] or '-'))}</div>", unsafe_allow_html=True)
                         c2.markdown(f"<div class='fe-reg-cell strong'>{html.escape(str(group['invoice_no'] or '-'))}</div>", unsafe_allow_html=True)
-                        c3.markdown(f"<div class='fe-reg-cell'>{html.escape(str(group['mode']))}</div>", unsafe_allow_html=True)
+                        c3.markdown(f"<div class='fe-reg-cell'>{html.escape('Tax Invoice' if str(group['mode']) == 'Sale' else str(group['mode']))}</div>", unsafe_allow_html=True)
                         c4.markdown(f"<div class='fe-reg-cell small'>{html.escape(party_txt)}</div>", unsafe_allow_html=True)
                         c5.markdown(f"<div class='fe-reg-cell amt'>{tdr:,.2f}</div>", unsafe_allow_html=True)
                         c6.markdown(f"<div class='fe-reg-cell amt'>{tcr:,.2f}</div>", unsafe_allow_html=True)
