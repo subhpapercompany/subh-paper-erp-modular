@@ -625,10 +625,10 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .h-foot { display: flex; justify-content: space-between; align-items: flex-start; margin: 0 80px 0; }
   .to-block { font-size: 14pt; color: #26313c; line-height: 1.5; }
   .h-accept-block { display: flex; flex-direction: column; margin-top: 24px; }
-  .h-acceptline { margin: 6px 80px 10px; font-style: italic; color: #4c463a; }
+  .h-acceptline { margin: 6px 80px 72px; font-style: italic; color: #4c463a; }
   .h-signline { display: inline-block; text-align: right; margin: 0 80px 0 auto; }
   .sign-top { display: block; font-weight: 600; color: #123b5e; }
-  .sign-gap { display: block; height: 20px; }
+  .sign-gap { display: block; height: 72px; }
   .sign-role { color: #3a4a56; display: block; }
   .lh-ft { flex: none; border-top: 2px solid #c9a94e; padding-top: 8px; }
   .lh-ftrow { display: flex; align-items: center; justify-content: space-between; gap: 10px;
