@@ -534,15 +534,16 @@ def render():
     </table>
   </div>
 
-  <div class='h-note'>Presentment, protest and notice of dishonor waived by all parties entitled to require for the same.</div>
-
-  <div class='h-foot'>
-    <div class='to-block'>
-      To,<br/>
-      Kokuyo Camlin Limited,<br/>
-      48/2, Hilton House,<br/>
-      MIDC, Andheri (East),<br/>
-      Mumbai - 400093.
+  <div class='h-bottom'>
+    <div class='h-note'>Presentment, protest and notice of dishonor waived by all parties entitled to require for the same.</div>
+    <div class='h-foot'>
+      <div class='to-block'>
+        To,<br/>
+        Kokuyo Camlin Limited,<br/>
+        48/2, Hilton House,<br/>
+        MIDC, Andheri (East),<br/>
+        Mumbai - 400093.
+      </div>
     </div>
   </div>
 
@@ -608,8 +609,9 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .inv-tbl th, .inv-tbl td { border: 1px solid #6b7680; padding: 5px 6px; text-align: center; }
   .inv-tbl th { background: #123b5e; color: #f4e8c8; font-weight: 600; letter-spacing: .5px; }
   .inv-tbl td { color: #26313c; }
-  .h-note { margin: 16px 80px 6px; font-style: normal; font-weight: 700; color: #5a5548; line-height: 1.5; font-size: inherit; }
-  .h-foot { display: flex; justify-content: space-between; align-items: flex-start; margin: 10px 80px 0; }
+  .h-bottom { display: flex; flex-direction: column; }
+  .h-note { margin: 0 80px 14px; font-style: normal; font-weight: 700; color: #5a5548; line-height: 1.5; font-size: inherit; }
+  .h-foot { display: flex; justify-content: space-between; align-items: flex-start; margin: 0 80px 0; }
   .to-block { font-size: 14pt; color: #26313c; line-height: 1.5; }
   .h-acceptline { margin: 6px 80px 12px; font-size: 13.5pt; font-style: italic; color: #4c463a; }
   .h-signline { display: inline-block; text-align: right; margin: 0 80px 0 auto; }
