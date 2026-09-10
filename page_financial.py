@@ -541,14 +541,16 @@ def render():
       Kokuyo Camlin Limited,<br/>
       48/2, Hilton House,<br/>
       MIDC, Andheri (East),<br/>
-      Mumbai - 400093.<br/>
-      <div class='accept'>Accepted and payable on due date at Mumbai.</div>
+      Mumbai - 400093.
     </div>
-    <div class='sign-block'>
-      <div class='sign-top'>For, Subh Paper Company</div>
-      <div class='sign-gap'></div>
-      <div class='sign-role'>Manager</div>
-    </div>
+  </div>
+
+  <div class='h-acceptline'>Accepted and payable on due date at Mumbai.</div>
+
+  <div class='h-signline'>
+    <span class='sign-top'>For, Subh Paper Company</span>
+    <span class='sign-gap'></span>
+    <span class='sign-role'>Manager</span>
   </div>
 </div>"""
 
@@ -595,24 +597,24 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
       background: linear-gradient(90deg, #c9a94e, #fff3d0, #c9a94e); }
   .frow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
       margin: 0 80px 13px; }
-  .f-lbl { text-align: left; font-weight: 600; font-size: 13.5px; color: #2f4453; }
+  .f-lbl { text-align: left; font-weight: 600; font-size: 14px; color: #2f4453; }
   .f-colon { margin: 0 12px; font-weight: 700; font-size: 16px; color: #123b5e; text-align: center; }
   .f-val { text-align: left; font-size: 14px; font-weight: 600; color: #123b5e; white-space: nowrap; }
-  .h-par { font-size: 13.5px; line-height: 1.6; color: #26313c; text-align: justify;
+  .h-par { font-size: 14px; line-height: 1.55; color: #26313c; text-align: justify;
       margin: 2px 80px 16px; }
   .tbl-wrap { margin: 0 80px; }
-  .inv-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .inv-tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
   .inv-tbl th, .inv-tbl td { border: 1px solid #6b7680; padding: 8px 6px; text-align: center; }
   .inv-tbl th { background: #123b5e; color: #f4e8c8; font-weight: 600; letter-spacing: .5px; }
   .inv-tbl td { color: #26313c; }
   .h-note { margin: 16px 80px 2px; font-size: 12.5px; font-style: italic; color: #5a5548; line-height: 1.5; }
-  .h-foot { display: flex; justify-content: space-between; align-items: flex-end; margin: 20px 80px 0; }
+  .h-foot { display: flex; justify-content: space-between; align-items: flex-start; margin: 20px 80px 0; }
   .to-block { font-size: 13.5px; color: #26313c; line-height: 1.6; }
-  .accept { margin-top: 12px; font-size: 12.5px; color: #4c463a; font-style: italic; }
-  .sign-block { text-align: right; }
-  .sign-top { font-size: 14px; font-weight: 600; color: #123b5e; }
-  .sign-gap { height: 54px; }
-  .sign-role { font-size: 13px; color: #3a4a56; }
+  .h-acceptline { margin: 18px 80px 26px; font-size: 13px; font-style: italic; color: #4c463a; }
+  .h-signline { display: inline-block; text-align: right; margin: 0 80px 0 auto; }
+  .sign-top { display: block; font-size: 14px; font-weight: 600; color: #123b5e; }
+  .sign-gap { display: block; height: 54px; }
+  .sign-role { font-size: 13px; color: #3a4a56; display: block; }
   .lh-ft { flex: none; border-top: 2px solid #c9a94e; padding-top: 13px; }
   .lh-ftrow { display: flex; align-items: center; justify-content: space-between; gap: 10px;
       font-size: 11.5px; color: #24404f; }
