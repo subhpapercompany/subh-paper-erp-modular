@@ -1812,15 +1812,17 @@ def render():
     @media print {{
         body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
         .no-print {{ display: none !important; }}
-        .sheet {{ width: 100%; }}
-        .leave-app {{ height: 50%; page-break-after: always; margin: 0; box-shadow: none; }}
-        .leave-app:last-child {{ page-break-after: auto; }}
+        .sheet {{ width: 100%; padding: 0; }}
+        .leave-app {{ height: 505px; page-break-inside: avoid; page-break-after: auto;
+            margin: 0 0 4mm 0; box-shadow: none; }}
+        .leave-app:last-child {{ margin-bottom: 0; }}
     }}
     @media screen {{
         body {{ background: #dfe6ec; }}
         .sheet {{ width: 794px; height: 1123px; margin: 18px auto; background: #fdfcf9;
-            padding: 20px 20px 6px 20px; border-radius: 6px;
+            padding: 18px 20px 6px 20px; border-radius: 6px;
             box-shadow: 0 8px 28px rgba(14,58,92,.35); }}
+        .leave-app {{ height: 540px; margin-bottom: 6px; }}
     }}
 </style>
 </head>
