@@ -591,8 +591,8 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .lh-fll { flex: 1; height: 0; border-top: 1px solid #dcc68c; }
   .lh-flc { font-size: 13px; color: #c9a94e; letter-spacing: 6px; }
   .lh-body { flex: 1; display: flex; flex-direction: column; min-height: 0; justify-content: space-between; }
-  .h-title { text-align: center; font-family: "Playfair Display", Georgia, serif; font-size: 16px; font-weight: 700; color: #123b5e; letter-spacing: 4px; text-transform: uppercase; }
-  .h-titlebar { width: 180px; height: 3px; margin: 12px auto 36px auto;
+  .h-title { text-align: center; font-family: "Playfair Display", Georgia, serif; font-size: 16px; font-weight: 700; color: #123b5e; letter-spacing: 4px; text-transform: uppercase; margin-top: 40px; }
+  .h-titlebar { width: 180px; height: 3px; margin: 12px auto 14px auto;
       background: linear-gradient(90deg, #c9a94e, #fff3d0, #c9a94e); }
   .frow { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
       margin: 0 80px 7px; }
