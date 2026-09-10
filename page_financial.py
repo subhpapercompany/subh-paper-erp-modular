@@ -518,13 +518,16 @@ color: #123b5e; letter-spacing: 2px; white-space: nowrap; line-height: 1.05;
   .lh-ftrow .sep { color: #c9a94e; font-weight: 700; }
   .lh-ftaddr { text-align: center; font-size: 12.5px; font-weight: 600; color: #24404f; margin-top: 9px; letter-spacing: .3px; }
   @media print {
-      @page { size: A4 portrait; margin: 12mm; }
-      html, body { height: 100%; background: #fff; }
-      .lh-page { width: 100%; height: 100%; min-height: 0; margin: 0; border-radius: 0;
-          border: 2px solid #c9a94e; box-shadow: none; padding: 8px 10px; background: #fffdf6; }
-      .lh-name { font-size: 24px; letter-spacing: 2px; }
-      .lh-tagline { white-space: nowrap; font-size: 9px; letter-spacing: 2px; }
-      .lh-panel { width: 220px; }
+      @page { size: A4 portrait; margin: 10mm; }
+      html, body { width: 100%; height: 100%; background: #fff; }
+      .lh-page { width: 100%; height: 1047px; min-height: 0; margin: 0; overflow: hidden;
+          border-radius: 0; border: 2px solid #c9a94e; box-shadow: none; padding: 6px 8px; background: #fffdf6; }
+      .lh-hd { flex-wrap: wrap; row-gap: 8px; }
+      .lh-name { font-size: 22px; letter-spacing: 1.5px; white-space: normal; }
+      .lh-tagline { font-size: 10px; letter-spacing: 1.5px; }
+      .lh-panel { width: 205px; }
+      .lh-flourish { margin-top: 12px; }
+      .lh-ftrow { font-size: 10.5px; }
       .lh-no-print { display: none !important; }
   }
 </style>
