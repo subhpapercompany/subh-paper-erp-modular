@@ -163,43 +163,122 @@ def _turso_credentials():
     env = _read_env_file()
     url = os.environ.get("TURSO_URL") or env.get("TURSO_URL")
     token = os.environ.get("TURSO_AUTH_TOKEN") or env.get("TURSO_AUTH_TOKEN")
+    if not (url and token):
+        try:
+            url = url or st.secrets.get("TURSO_URL")
+            token = token or st.secrets.get("TURSO_AUTH_TOKEN")
+        except Exception:
+            pass
     return url, token
 
-def get_db_connection(private=False):
+def _app_dir():
+    return os.path.dirname(os.path.abspath(__file__))
+
+class _LibsqlResult:
+    """Makes a libsql execute() result behave like a sqlite3 cursor:
+    supports iteration, fetchone() and fetchall()."""
+    def __init__(self, cursor):
+        self._c = cursor
+        self._rows = None
+    def _materialize(self):
+        if self._rows is None:
+            self._rows = self._c.fetchall()
+        return self._rows
+    def fetchall(self):
+        return self._materialize()
+    def fetchone(self):
+        rows = self._materialize()
+        return rows[0] if rows else None
+    def __iter__(self):
+        return iter(self._materialize())
+    def __getitem__(self, idx):
+        return self._materialize()[idx]
+
+class _LibsqlConn:
+    """Connection wrapper so the app code (written for sqlite3) works
+    unchanged against a Turso (libsql) cloud database."""
+    def __init__(self, raw):
+        self._raw = raw
+    def execute(self, *args, **kwargs):
+        try:
+            return _LibsqlResult(self._raw.execute(*args, **kwargs))
+        except (TypeError, AttributeError):
+            raise
+    def executemany(self, *args, **kwargs):
+        return self._raw.executemany(*args, **kwargs)
+    def executescript(self, *args, **kwargs):
+        return self._raw.executescript(*args, **kwargs)
+    def cursor(self):
+        return self._raw.cursor()
+    def commit(self):
+        self._raw.commit()
+    def rollback(self):
+        self._raw.rollback()
+    def close(self):
+        try:
+            self._raw.close()
+        except Exception:
+            pass
+
+def _company_db_path():
+    """Return the SQLite file of the session's active company (default camlin.db)."""
+    _file = st.session_state.get("company_db_file", "subh_paper_company.db")
+    return os.path.join(_app_dir(), _file)
+
+def _hr_db_path():
+    return os.path.join(_app_dir(), "hr.db")
+
+def _central_db_path():
+    return os.path.join(_app_dir(), "central.db")
+
+def get_db_connection(private=False, db="company"):
     """Open a database connection.
 
-    If Turso credentials are present (env vars or .env), connect to the Turso
-    cloud database so everyone sees the same data. Otherwise fall back to the
-    local SQLite file (used for development / offline).
+    Cloud-first: when Turso credentials are configured the app uses the Turso
+    cloud database for everything (works on Streamlit Cloud and any machine
+    where a .env with TURSO_URL / TURSO_AUTH_TOKEN exists).
 
-    private=True returns a fresh connection the caller owns and MUST close.
+    Fallback (no Turso creds): the old local SQLite files.
+      db="company" -> the active company's SQLite file (company_db_file in session state).
+      db="hr"      -> the shared manpower database (hr.db).
+      db="central" -> the central registry database (central.db: company_master etc).
+
+    private=True  returns a fresh connection the caller owns and MUST close.
     private=False returns a session-cached connection that is reused across
     reruns and must NEVER be closed by the caller (it is process/session-owned).
     """
-    url, token = _turso_credentials()
-    if url and token:
+    _url, _token = None, None
+    try:
+        _url, _token = _turso_credentials()
+    except Exception:
+        _url, _token = None, None
+    if _url and _token:
         try:
             import libsql
-            if private:
-                return libsql.connect(url, auth_token=token, autocommit=True, timeout=30)
-            # Reuse one connection per Streamlit session: har rerun me naya
-            # handshake/connection banane se reruns bhut slow hote hain aur
-            # click events race/lost ho jate hain. autocommit=True har statement
-            # ko apne txn me rakhta hai, is liye idle session pe SQLITE_BUSY nahi aata.
-            try:
-                conn = st.session_state.get("_turso_conn")
-            except Exception:
-                conn = None
-            if conn is None:
-                conn = libsql.connect(url, auth_token=token, autocommit=True, timeout=30)
-                try:
-                    st.session_state["_turso_conn"] = conn
-                except Exception:
-                    pass
-            return conn
+            return _LibsqlConn(libsql.connect(_url, auth_token=_token, autocommit=True, timeout=30))
+        except Exception:
+            pass  # libsql missing/unavailable -> fall through to local files
+    if db == "hr":
+        return sqlite3.connect(_hr_db_path())
+    if db == "central":
+        return sqlite3.connect(_central_db_path())
+    path = _company_db_path()
+    if private:
+        return sqlite3.connect(path)
+    # Reuse one connection per Streamlit session per company DB file.
+    try:
+        conn = st.session_state.get(f"_company_conn_{path}")
+        if conn is not None and not isinstance(conn, sqlite3.Connection):
+            conn = None
+    except Exception:
+        conn = None
+    if conn is None:
+        conn = sqlite3.connect(path)
+        try:
+            st.session_state[f"_company_conn_{path}"] = conn
         except Exception:
             pass
-    return sqlite3.connect(DB_NAME)
+    return conn
 
 @st.cache_data(ttl=8, show_spinner=False)
 def _cf_item_options_cached():

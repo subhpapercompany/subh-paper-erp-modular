@@ -13,7 +13,7 @@ def render():
     st.markdown("<h2 class='section-header'>👥 HR Module</h2>", unsafe_allow_html=True)
     render_financial_year_control()
 
-    hr_conn = get_db_connection(private=True)
+    hr_conn = get_db_connection(private=True, db="hr")
 
     # Employee Master schema
     hr_conn.execute("""
@@ -102,6 +102,22 @@ def render():
             hr_conn.execute(
                 f"ALTER TABLE hr_daily_attendance ADD COLUMN {col} {col_type}"
             )
+    hr_conn.commit()
+
+    # Wages payment table
+    hr_conn.execute("""
+        CREATE TABLE IF NOT EXISTS hr_wages_payment (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            from_date TEXT,
+            to_date TEXT,
+            emp_id TEXT,
+            employee_name TEXT,
+            net_pay REAL DEFAULT 0,
+            cash_paid REAL DEFAULT 0,
+            wages_due REAL DEFAULT 0,
+            UNIQUE(from_date, to_date, emp_id)
+        )
+    """)
     hr_conn.commit()
 
     HR_CATEGORY_OPTIONS = ["Wages", "Payroll"]
@@ -1094,22 +1110,21 @@ def render():
                 )
             
             if report_from_date:
-                report_to_date = report_from_date + datetime.timedelta(days=6)
                 with r2:
-                    st.text_input(
-                        "To Date (Auto)",
-                        value=format_date(report_to_date),
-                        disabled=True,
-                        key="hr_weekly_report_to_date_wages"
+                    report_to_date, report_to_date_str = get_date_input(
+                        "To Date (DD/MM/YYYY)",
+                        "hr_weekly_report_to_date_wages",
+                        default_value=datetime.date.today().strftime('%d/%m/%Y')
                     )
 
+                _num_days = (report_to_date - report_from_date).days + 1
                 st.caption(
                     f"Report period: {format_date(report_from_date)} to "
-                    f"{format_date(report_to_date)} — exactly 7 days"
+                    f"{format_date(report_to_date)} — {_num_days} day(s)"
                 )
 
                 week_dates = [
-                    report_from_date + datetime.timedelta(days=i) for i in range(7)
+                    report_from_date + datetime.timedelta(days=i) for i in range(_num_days)
                 ]
 
                 employee_rows = hr_conn.execute(
@@ -1237,7 +1252,7 @@ def render():
                     advance_balance_after = round(old_advance + new_advance - advance_deduction, 2)
                     net_pay = round(gross_wages + prev_adjustment - advance_deduction, 2)
 
-                    cash_paid = net_pay
+                    cash_paid = 0.0
                     wages_due = round(net_pay - cash_paid, 2)
                     carry_forward = wages_due
 
@@ -1270,6 +1285,110 @@ def render():
 
                 if display_rows:
                     report_df = pd.DataFrame(display_rows, columns=fixed_columns)
+
+                    st.markdown("**Enter Cash Paid:**")
+                    _recalc_rows = []
+                    _idx_net = 4 + 2 * len(week_dates) + 8
+                    _idx_cp = _idx_net + 1
+                    _idx_wd = _idx_net + 2
+                    _idx_cf = _idx_net + 3
+                    _date_slug = format_date(report_from_date).replace('/', '-')
+                    _emp_names = [str(r[1]) for r in report_rows]
+                    _emp_ids = [str(r[0]) for r in report_rows]
+                    _emp_net_map = {str(r[0]): float(r[_idx_net]) for r in report_rows}
+                    _saved_cp_map = {}
+                    for _r in hr_conn.execute(
+                        "SELECT emp_id, cash_paid FROM hr_wages_payment WHERE from_date=? AND to_date=?",
+                        (report_from_date_str, report_to_date_str)
+                    ).fetchall():
+                        _saved_cp_map[str(_r[0])] = float(_r[1] or 0)
+
+                    dc1, dc2, dc3, dc4 = st.columns([1.6, 1.2, 1.2, 1.2])
+                    with dc1:
+                        _sel_i = st.selectbox(
+                            "Select Labour",
+                            range(len(_emp_names)),
+                            index=None,
+                            format_func=lambda i: _emp_names[i],
+                            placeholder="Labour chunein...",
+                            key=f"wages_labour_pick_{_date_slug}",
+                        )
+
+                    if _sel_i is not None:
+                        _sel_id = _emp_ids[_sel_i]
+                        _sel_net = float(_emp_net_map.get(_sel_id, 0.0))
+                        with dc2:
+                            st.text_input(
+                                "Net Payable",
+                                value=f"{_sel_net:,.2f}",
+                                disabled=True,
+                            )
+                        with dc3:
+                            _sk_key = f"hr_wages_cash_{_sel_id}_{_date_slug}"
+                            _cp_key = f"wages_cp_{_sel_id}_{_date_slug}"
+                            _prev_val = st.session_state.get(_sk_key)
+                            if _prev_val is None:
+                                _prev_val = _saved_cp_map.get(_sel_id, 0.0)
+                                st.session_state[_sk_key] = float(_prev_val)
+                            _cp = st.number_input(
+                                "Cash Paid",
+                                min_value=0.0, value=float(_prev_val), step=100.0, format="%.2f",
+                                key=_cp_key,
+                            )
+                            st.session_state[_sk_key] = _cp
+                        with dc4:
+                            _wd_show = round(_sel_net - float(_cp), 2)
+                            st.text_input(
+                                "Wages Due",
+                                value=f"{_wd_show:,.2f}",
+                                disabled=True,
+                            )
+
+                    for _row in report_rows:
+                        _emp_id = str(_row[0])
+                        _cp = float(st.session_state.get(f"hr_wages_cash_{_emp_id}_{_date_slug}", 0.0))
+                        _wd = round(float(_row[_idx_net]) - _cp, 2)
+                        _new_row = list(_row)
+                        _new_row[_idx_cp] = _cp
+                        _new_row[_idx_wd] = _wd
+                        _new_row[_idx_cf] = _wd
+                        _recalc_rows.append(_new_row)
+                    report_rows = _recalc_rows
+
+                    _save_cp = st.button(
+                        "💾 Save Cash Paid",
+                        key=f"save_cash_{_date_slug}",
+                    )
+                    if _save_cp:
+                        for _row in report_rows:
+                            _emp_id = str(_row[0])
+                            _emp_name = str(_row[1])
+                            _net_v = float(_row[_idx_net])
+                            _cp_v = float(st.session_state.get(f"hr_wages_cash_{_emp_id}_{_date_slug}", 0.0))
+                            _wd_v = round(_net_v - _cp_v, 2)
+                            _exist = hr_conn.execute(
+                                "SELECT id FROM hr_wages_payment WHERE from_date=? AND to_date=? AND emp_id=?",
+                                (report_from_date_str, report_to_date_str, _emp_id)
+                            ).fetchone()
+                            if _exist:
+                                hr_conn.execute(
+                                    "UPDATE hr_wages_payment SET employee_name=?, net_pay=?, cash_paid=?, wages_due=? WHERE id=?",
+                                    (_emp_name, _net_v, _cp_v, _wd_v, _exist[0])
+                                )
+                            else:
+                                hr_conn.execute(
+                                    "INSERT INTO hr_wages_payment (from_date, to_date, emp_id, employee_name, net_pay, cash_paid, wages_due) VALUES (?,?,?,?,?,?,?)",
+                                    (report_from_date_str, report_to_date_str, _emp_id, _emp_name, _net_v, _cp_v, _wd_v)
+                                )
+                        hr_conn.commit()
+                        st.rerun()
+
+                    _recalc_display = []
+                    for _idx, _row in enumerate(report_rows, 1):
+                        _recalc_display.append([_idx] + _row[1:])
+                    display_rows = _recalc_display
+                    report_df = pd.DataFrame(display_rows, columns=fixed_columns)
+
                     st.dataframe(
                         report_df,
                         use_container_width=True,
@@ -1494,10 +1613,9 @@ def render():
                             holiday_days += 1
                     
                     basic_salary = float(basic or 0)
-                    conveyance_allowance = float(conveyance or 0)
-                    
-                    da = basic_salary * 0.5
-                    gross_salary = basic_salary + da + conveyance_allowance
+                    ta = float(conveyance or 0)
+
+                    gross_salary = basic_salary + ta
                     
                     total_working_days = days_in_month
                     total_p = present_days + (half_days * 0.5) + holiday_days
@@ -1541,7 +1659,7 @@ def render():
                     row = [
                         name,
                         round(basic_salary, 2),
-                        round(da, 2),
+                        round(ta, 2),
                     ] + day_statuses + [
                         round(total_p, 1),
                         round(total_overtime, 2),
@@ -1555,7 +1673,7 @@ def render():
                     ]
                     report_data.append(row)
                 
-                columns = ["Employee Name", "Basic", "DA"] + [str(i).zfill(2) for i in range(1, days_in_month + 1)] + [
+                columns = ["Employee Name", "Basic", "TA"] + [str(i).zfill(2) for i in range(1, days_in_month + 1)] + [
                     "Total P", "OT Hrs", "Gross Earnings", "PF", "ESI", "Prof Tax", "Advance", "Total Ded", "Net Pay"
                 ]
                 
@@ -1568,7 +1686,7 @@ def render():
                     column_config={
                         "Employee Name": st.column_config.TextColumn("Employee Name", width="medium"),
                         "Basic": st.column_config.NumberColumn("Basic", format="%.2f"),
-                        "DA": st.column_config.NumberColumn("DA", format="%.2f"),
+                        "TA": st.column_config.NumberColumn("TA", format="%.2f"),
                         "Total P": st.column_config.NumberColumn("Total P", format="%.1f"),
                         "OT Hrs": st.column_config.NumberColumn("OT Hrs", format="%.2f"),
                         "Gross Earnings": st.column_config.NumberColumn("Gross Earnings", format="%.2f"),
@@ -1668,7 +1786,8 @@ def render():
         with leave_app_tab:
             st.markdown("#### 📝 LEAVE APPLICATION FORM")
 
-            company_row = hr_conn.execute(
+            _co_conn = get_db_connection(private=True)
+            company_row = _co_conn.execute(
                 "SELECT company_name, address1, address2, city, pincode, phone FROM company_master ORDER BY id LIMIT 1"
             ).fetchone()
             company_name = (company_row[0] if company_row and company_row[0] else "SUBH PAPER COMPANY").upper()

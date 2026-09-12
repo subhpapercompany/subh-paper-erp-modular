@@ -8,11 +8,12 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
+import re
 from shared_helpers import *
 def render():
     st.markdown("<h2 style='text-align: center; color: #2C3E50; font-weight:bold;'>🏢 Company Management Portal</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #7F8C8D; margin-bottom: 20px;'>Company create, update aur select — sab yahin se manage karein.</p>", unsafe_allow_html=True)
-    cp_conn = get_db_connection()
+    cp_conn = get_db_connection(db="central")
     _cp_schema = {
         "company_name": "TEXT", "gst_no": "TEXT", "address": "TEXT", "city": "TEXT",
         "state": "TEXT", "country": "TEXT", "pincode": "TEXT", "phone": "TEXT",
@@ -54,8 +55,16 @@ def render():
                 st.markdown(f"<div style='border:1px solid #CBD5E1;border-radius:8px;padding:10px 14px;background:#F8FAFC;'><b>🏢 {html.escape(str(_co_name))}</b></div>", unsafe_allow_html=True)
             with r2:
                 if st.button("Select", key=f"cp_sel_{_co_id}", use_container_width=True, type="primary"):
+                    _cp_path_row = cp_conn.execute("SELECT company_data_path FROM company_master WHERE id = ?", (int(_co_id),)).fetchone()
+                    _cp_db_file = (_cp_path_row[0] if _cp_path_row and _cp_path_row[0] else f"company_{_co_id}.db")
                     st.session_state.selected_company = str(_co_name)
                     st.session_state.selected_company_id = int(_co_id)
+                    st.session_state.company_db_file = str(_cp_db_file)
+                    try:
+                        st.cache_data.clear()
+                        st.cache_resource.clear()
+                    except Exception:
+                        pass
                     st.session_state.current_page = "Main Hub"
                     st.rerun()
 
@@ -91,9 +100,11 @@ def render():
             if not (_cc_name or "").strip():
                 st.error("Company Name is required.")
             else:
+                _cc_slug = re.sub(r'[^a-z0-9]+', '_', (_cc_name or "").strip().lower()).strip('_')
+                _cc_final_path = (_cc_path or "").strip() or (f"{_cc_slug or 'company'}.db")
                 cp_conn.execute(
                     "INSERT INTO company_master (company_name, address1, address2, state, country, pincode, telephone, mobile_no, email, website, currency_symbol, currency_formal_name, financial_year_from, books_from, company_data_path, created_on) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    (_cc_name.strip(), _cc_addr1, _cc_addr2, _cc_state or "", _cc_country or "India", _cc_pin, _cc_tele, _cc_mob, _cc_email, _cc_web, _cc_cur_sym, _cc_cur_name or "INR", _cc_fy_from, _cc_books, _cc_path, datetime.date.today().strftime('%d/%m/%Y')),
+                    (_cc_name.strip(), _cc_addr1, _cc_addr2, _cc_state or "", _cc_country or "India", _cc_pin, _cc_tele, _cc_mob, _cc_email, _cc_web, _cc_cur_sym, _cc_cur_name or "INR", _cc_fy_from, _cc_books, _cc_final_path, datetime.date.today().strftime('%d/%m/%Y')),
                 )
                 cp_conn.commit()
                 st.session_state.cp_form_nonce = _cp_fnonce + 1

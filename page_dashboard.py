@@ -37,7 +37,7 @@ def _load_dash_data():
 
 @st.cache_data(ttl=30, show_spinner=False)
 def _load_hr_counts():
-    _hr_conn = get_db_connection(private=True)
+    _hr_conn = get_db_connection(private=True, db="hr")
     try:
         wages = int(_hr_conn.execute("SELECT COUNT(*) FROM hr_employee_master WHERE category='Wages'").fetchone()[0])
         payroll = int(_hr_conn.execute("SELECT COUNT(*) FROM hr_employee_master WHERE category='Payroll'").fetchone()[0])
